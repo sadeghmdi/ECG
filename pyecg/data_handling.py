@@ -1,6 +1,3 @@
-
-
-
 import numpy as np
 import pandas as pd
 import wfdb
@@ -13,19 +10,45 @@ from pyecg.data_preprocessing import *
 from pyecg.beat_info import BeatInfo
 
 
-
-
 class DataHandling:
 	"""
-	Method save_dataset creates a file containing signal fragments
-	 			and their corresponding label
+	Processes the provided signals and creates the dataset file containg waveforms,features,and labels.
 
-	example:
-			dh = DataHandling(base_path='../data')
-			dh.save_dataset(records=DS2,save_file_name='DS2.dat')
-			x_test, y_test = dh.load_data(load_file_name='DS2.dat')
-			statReport = dh.report_stats_table([y_test],['test'])
+	Parameters
+	----------
+	base_path : str
+		Path of main directory for loading and saving data.
+	data_path : str
+		Path of subdirectory containing original raw data relative to the base_path.
+	win : list
+		A list to specifying onset and offset of signal excerpts around the rpeaks.
+	remove_bl : bool
+		If True removes the baseline from the raw signals before extracting beat excerpts.
+	lowpass : bool
+		Whether to apply low pass filtering to the raw signals.
+	fs : int
+		Sampling rate of the raw signals.
+	cutoff : int
+		Parameter of the low pass filter.
+	order : int
+		Parameter of the low pass filter.
+
+	Exampels
+	--------
+	Creating the object:
+	>>> dh = DataHandling(base_path='../data', win=[500,500],remove_bl=False,lowpass=False)
+	Saving the dataset file:
+	>>> dh.save_dataset(records=DS1[:18], save_file_name='train.beat')
+	Loading the dataset file into a dictionary:
+	>>> ds = dh.load_data(file_name='train.beat')
+		file loaded: ../data/train.beat
+		shape of "waveforms" is (38949, 1000)
+		shape of "beat_feats" is (38949, 62)
+		shape of "labels" is (38949,)
+	>>> x_train, r_train, y_train = ds.values() 
+
 	"""
+
 	def __init__(self, base_path=os.getcwd(), data_path=DATA_PATH, win=[60,120],
 												remove_bl=True,lowpass=True,fs=360,cutoff=45,order=15):
 
@@ -40,6 +63,23 @@ class DataHandling:
 		self.order = order
 
 	def get_signal_data(self, record_num=106, return_dict=True):
+		"""
+		Loads a record and return its components.
+
+		Parameters
+		----------
+		record_num : int
+			The record number.
+		return_dict : bool
+			If True returns as a dict otherwise returns as a pandas dataframe.
+
+		Returns
+		-------
+		dict or dataframe
+			
+		
+
+		"""
 		record = wfdb.rdrecord(self.data_path + str(record_num), channel_names=['MLII'])
 		annotation = wfdb.rdann(self.data_path + str(record_num), 'atr')
 		signal = record.p_signal[:,0]

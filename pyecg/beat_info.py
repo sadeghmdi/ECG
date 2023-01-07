@@ -1,5 +1,3 @@
-
-
 import numpy as np
 from scipy import stats
 from scipy.fft import rfft, rfftfreq
@@ -13,18 +11,18 @@ class BeatInfo:
 
 	Parameters
 	----------
-	data: dict
+	data : dict
 		key='rpeaks'
 				A list containing locations of rpeaks.
 		key='waveform' 
 				Waveform of the beat.
 		key='start_idxs'
 				Index of beginnig of the segmented waveform in the original signal.
-	fs: int
+	fs : int
 		Sampling rate
-	bloc: int 
+	bloc : int 
 		Index of the beat in the rpeaks list, considering pre-RR and post-RR values.
-	in_ms: bool 
+	in_ms : bool 
 		Whether to calculate rr-intervals in time(miliseconds) or samples.
 
 	Attributes
@@ -41,9 +39,6 @@ class BeatInfo:
 		RR intervals in samples.
 	sdrri : list
 		Successive RRI differences.
-
-start_idx
-
 	"""
 	def __init__(self,fs=360,beat_loc=10,in_ms=True):
 		self.fs = fs
