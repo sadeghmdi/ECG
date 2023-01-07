@@ -1,0 +1,740 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>pyecg.beat_info &mdash; PyECG 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyECG
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">ecg</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyECG</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyecg.beat_info</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyecg.beat_info</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of a personal project and is copyrighted.If you have gained access</span>
+<span class="sd">to this file, please delete it and inform the owner by this email: sadegh0@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">stats</span>
+<span class="kn">from</span> <span class="nn">scipy.fft</span> <span class="kn">import</span> <span class="n">rfft</span><span class="p">,</span> <span class="n">rfftfreq</span>
+<span class="kn">from</span> <span class="nn">pyecg.pqrst</span> <span class="kn">import</span> <span class="n">PQRST</span>
+
+
+
+<div class="viewcode-block" id="BeatInfo"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo">[docs]</a><span class="k">class</span> <span class="nc">BeatInfo</span><span class="p">:</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Computes features for a single beat.</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	data: dict</span>
+<span class="sd">		key=&#39;rpeaks&#39;</span>
+<span class="sd">				A list containing locations of rpeaks.</span>
+<span class="sd">		key=&#39;waveform&#39; </span>
+<span class="sd">				Waveform of the beat.</span>
+<span class="sd">		key=&#39;start_idxs&#39;</span>
+<span class="sd">				Index of beginnig of the segmented waveform in the original signal.</span>
+<span class="sd">	fs: int</span>
+<span class="sd">		Sampling rate</span>
+<span class="sd">	bloc: int </span>
+<span class="sd">		Index of the beat in the rpeaks list, considering pre-RR and post-RR values.</span>
+<span class="sd">	in_ms: bool </span>
+<span class="sd">		Whether to calculate rr-intervals in time(miliseconds) or samples.</span>
+
+<span class="sd">	Attributes</span>
+<span class="sd">	----------</span>
+<span class="sd">	waveform : list</span>
+<span class="sd">		Whole waveform.</span>
+<span class="sd">	bwaveform : list</span>
+<span class="sd">		Beat waveform. Selected as a segment of whole waveform.</span>
+<span class="sd">	start_idx: int</span>
+<span class="sd">		The index of the first sample of the waveform according to the original signal.</span>
+<span class="sd">	rri : list</span>
+<span class="sd">		RR intervals in ms if in_ms=True.</span>
+<span class="sd">	rri_smpl : list</span>
+<span class="sd">		RR intervals in samples.</span>
+<span class="sd">	sdrri : list</span>
+<span class="sd">		Successive RRI differences.</span>
+
+<span class="sd">start_idx</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fs</span><span class="o">=</span><span class="mi">360</span><span class="p">,</span><span class="n">beat_loc</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">in_ms</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bloc</span> <span class="o">=</span> <span class="n">beat_loc</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">in_ms</span> <span class="o">=</span> <span class="n">in_ms</span>
+	
+	<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">=</span><span class="n">data</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;rpeak&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;waveform&#39;</span><span class="p">]</span>  <span class="c1">#Whole waveform</span>
+		<span class="c1">#self.start_idx = data[&#39;start_idx&#39;]  </span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rris</span><span class="p">(</span><span class="n">in_ms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">in_ms</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rri_smpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rris</span><span class="p">(</span><span class="n">in_ms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">meanrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_rri</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rms_rri</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sdrri</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">meansdrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_sdrri</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">absmean_sdrri</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">wfpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beat_waveform</span><span class="p">()</span>  <span class="c1">#Beat waveform</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqrst</span><span class="p">()</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">==</span><span class="s1">&#39;V&#39;</span><span class="p">:</span>
+			<span class="k">pass</span>
+			<span class="c1">#self.plot_wf() #plot for debug</span>
+
+	
+<div class="viewcode-block" id="BeatInfo.get_beat_waveform"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.get_beat_waveform">[docs]</a>	<span class="k">def</span> <span class="nf">get_beat_waveform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">win</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.35</span><span class="p">,</span><span class="mf">0.65</span><span class="p">]):</span>
+		<span class="c1">#segment beat waveform according to the pre and post rri intervals.</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">beat_rpeak_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span>
+			<span class="n">prerri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rri_smpl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+			<span class="n">postrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rri_smpl</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span>
+			<span class="n">beat_onset_org</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">beat_rpeak_idx</span> <span class="o">+</span> <span class="n">win</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">prerri</span><span class="p">)</span>
+			<span class="n">beat_offset_org</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">beat_rpeak_idx</span> <span class="o">+</span> <span class="n">win</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">postrri</span><span class="p">)</span>
+
+			<span class="n">beat_onset</span> <span class="o">=</span> <span class="n">beat_onset_org</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]</span>
+			<span class="n">beat_offset</span> <span class="o">=</span>  <span class="n">beat_offset_org</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]</span>
+			<span class="k">if</span> <span class="n">beat_onset</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">:</span>
+				<span class="n">beat_onset</span><span class="o">=</span><span class="mi">0</span>
+			<span class="k">if</span> <span class="n">beat_offset</span><span class="o">&gt;</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">):</span>
+				<span class="n">beat_offset</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+			<span class="n">rpk</span> <span class="o">=</span> <span class="n">beat_rpeak_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]</span>
+			<span class="n">bwaveform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">beat_onset</span><span class="p">:</span><span class="n">beat_offset</span><span class="p">]</span>
+			<span class="n">bwaveform</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bwaveform</span><span class="p">)</span>
+			<span class="c1">#if len(bwaveform)==0 or beat_onset*beat_offset&lt;0:</span>
+				<span class="c1">#print(len(self.whole_waveform))</span>
+				<span class="c1">#print([beat_onset_org,beat_offset_org])</span>
+				<span class="c1">#print(beat_rpeak_idx)</span>
+				<span class="c1">#print(self.start_idx)</span>
+				<span class="c1">#print([beat_onset,beat_offset])</span>
+			<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">bwaveform</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Beat waveform length cannot be zero!&quot;</span>
+
+			<span class="n">wfpts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;beat_onset_org&#39;</span><span class="p">:</span><span class="n">beat_onset_org</span><span class="p">,</span><span class="s1">&#39;beat_offset_org&#39;</span><span class="p">:</span><span class="n">beat_offset_org</span><span class="p">,</span>
+					 <span class="s1">&#39;beat_onset&#39;</span><span class="p">:</span><span class="n">beat_onset</span><span class="p">,</span><span class="s1">&#39;beat_offset&#39;</span><span class="p">:</span><span class="n">beat_offset</span><span class="p">,</span><span class="s1">&#39;rpk&#39;</span><span class="p">:</span><span class="n">rpk</span><span class="p">}</span>
+			<span class="k">return</span> <span class="n">bwaveform</span><span class="p">,</span> <span class="n">wfpts</span>
+		<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+			<span class="kn">import</span> <span class="nn">traceback</span>
+			<span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+			<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+			<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;waveform error!&#39;</span><span class="p">)</span>
+			<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;rec_num=</span><span class="si">{}</span><span class="s1">, sindex=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+											<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;rec_num&#39;</span><span class="p">],</span>
+											<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]))</span>
+			<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+			<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">)</span>
+			<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bwaveform</span><span class="p">)</span>
+			<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">beat_onset</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">beat_onset</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;yellow&#39;</span><span class="p">)</span>
+			<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">beat_offset</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">beat_offset</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;orange&#39;</span><span class="p">)</span>
+			<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">rpk</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">rpk</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BeatInfo.get_rris"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.get_rris">[docs]</a>	<span class="k">def</span> <span class="nf">get_rris</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">in_ms</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">in_ms</span><span class="p">:</span>
+			<span class="n">rpeaks</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1000</span><span class="o">*</span><span class="n">item</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">rpeaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span>
+		<span class="n">rri</span> <span class="o">=</span> <span class="p">[</span><span class="n">rpeaks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">rpeaks</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">rpeaks</span><span class="p">))]</span>
+		<span class="k">return</span> <span class="n">rri</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.get_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.get_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">get_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#successive differences of rri</span>
+		<span class="n">sdrri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">))</span>
+		<span class="k">return</span> <span class="n">sdrri</span></div>
+
+	<span class="c1">#============================================================</span>
+	<span class="c1">#RRI features</span>
+	<span class="c1">#============================================================</span>
+<div class="viewcode-block" id="BeatInfo.post_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.post_rri">[docs]</a>	<span class="k">def</span> <span class="nf">post_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.pre_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pre_rri">[docs]</a>	<span class="k">def</span> <span class="nf">pre_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.ratio_post_pre"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_post_pre">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_post_pre</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span>
+		<span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">post</span><span class="o">/</span><span class="n">pre</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.diff_post_pre"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_pre">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_pre</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span>
+		<span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">post</span><span class="o">-</span><span class="n">pre</span><span class="p">)</span>	</div>
+	
+<div class="viewcode-block" id="BeatInfo.diff_post_pre_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_pre_nr">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_pre_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span>
+		<span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">post</span><span class="o">-</span><span class="n">pre</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.mean_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.mean_rri">[docs]</a>	<span class="k">def</span> <span class="nf">mean_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#average of rri</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">)</span> </div>
+	
+<div class="viewcode-block" id="BeatInfo.mean_pre_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.mean_pre_rri">[docs]</a>	<span class="k">def</span> <span class="nf">mean_pre_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#average of pre-rri</span>
+		<span class="n">pre_rri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pre_rri</span><span class="p">)</span>	</div>
+	
+<div class="viewcode-block" id="BeatInfo.rms_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.rms_rri">[docs]</a>	<span class="k">def</span> <span class="nf">rms_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#rms of rri </span>
+		<span class="n">rri</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">)</span>
+		<span class="n">rms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rri</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+		<span class="k">return</span> <span class="n">rms</span></div>
+
+<div class="viewcode-block" id="BeatInfo.std_rri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.std_rri">[docs]</a>	<span class="k">def</span> <span class="nf">std_rri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#std of rr intervals</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_pre_avg"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_pre_avg">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_pre_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of pre-rr interval to local rr average</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">meanrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_post_avg"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_post_avg">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_post_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to local rr average</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">meanrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_pre_rms"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_pre_rms">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_pre_rms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of pre-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_post_rms"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_post_rms">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_post_rms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.diff_pre_avg_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_pre_avg_nr">[docs]</a>	<span class="k">def</span> <span class="nf">diff_pre_avg_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#diff of pre-rr interval to local rr average</span>
+		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">meanrri</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.diff_post_avg_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_avg_nr">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_avg_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#diff of post-rr interval to local rr average</span>
+		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">meanrri</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.compensate_ratio"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.compensate_ratio">[docs]</a>	<span class="k">def</span> <span class="nf">compensate_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">postpre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span>
+		<span class="n">_2t2ndpre</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="c1">#2 times second pre rri</span>
+		<span class="k">return</span> <span class="n">postpre</span><span class="o">/</span><span class="n">_2t2ndpre</span></div>
+
+<div class="viewcode-block" id="BeatInfo.compensate_diff_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.compensate_diff_nr">[docs]</a>	<span class="k">def</span> <span class="nf">compensate_diff_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">postpre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_rri</span><span class="p">()</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_rri</span><span class="p">()</span>
+		<span class="n">_2t2ndpre</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="c1">#2 times second pre rri</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">postpre</span> <span class="o">-</span> <span class="n">_2t2ndpre</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rmsrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.heart_rate"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.heart_rate">[docs]</a>	<span class="k">def</span> <span class="nf">heart_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">pre_rri</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span>
+		<span class="n">hr</span> <span class="o">=</span> <span class="mi">60</span><span class="o">/</span><span class="n">pre_rri</span>
+		<span class="k">return</span> <span class="n">hr</span></div>
+
+	<span class="c1">#============================================================</span>
+	<span class="c1">#SDRRI features</span>
+	<span class="c1">#============================================================</span>
+<div class="viewcode-block" id="BeatInfo.post_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.post_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">post_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.onbeat_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.onbeat_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">onbeat_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#on beat(postrri-prerri)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="BeatInfo.pre_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pre_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">pre_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#pre beat</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.diff_post_pre_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_pre_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_pre_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_sdrri</span><span class="p">()</span>
+		<span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sdrri</span><span class="p">()</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">post</span><span class="o">-</span><span class="n">pre</span><span class="p">)</span>	</div>
+	
+<div class="viewcode-block" id="BeatInfo.diff_post_pre_nr_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_pre_nr_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_pre_nr_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_sdrri</span><span class="p">()</span>
+		<span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sdrri</span><span class="p">()</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">post</span><span class="o">-</span><span class="n">pre</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.mean_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.mean_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">mean_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#average of sdrri</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">)</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.absmean_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.absmean_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">absmean_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#abs average of sdrri</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">))</span></div>
+		
+<div class="viewcode-block" id="BeatInfo.mean_pre_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.mean_pre_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">mean_pre_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#average of pre-rri</span>
+		<span class="n">pre_sdrri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">pre_sdrri</span><span class="p">)</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.rms_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.rms_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">rms_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#rms of rri</span>
+		<span class="n">sdrri</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">)</span>
+		<span class="n">rms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sdrri</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+		<span class="k">return</span> <span class="n">rms</span></div>
+
+<div class="viewcode-block" id="BeatInfo.std_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.std_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">std_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#std of sdrri</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdrri</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.diff_on_avg_sdrri_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_on_avg_sdrri_nr">[docs]</a>	<span class="k">def</span> <span class="nf">diff_on_avg_sdrri_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onbeat_sdrri</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_pre_rms_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_pre_rms_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_pre_rms_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of pre-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rms_sdrri</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_post_rms_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_post_rms_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_post_rms_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rms_sdrri</span><span class="p">()</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.ratio_on_rms_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_on_rms_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_on_rms_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">onbeat_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rms_sdrri</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_pre_absmean_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_pre_absmean_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_pre_absmean_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of pre-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.ratio_post_absmean_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_post_absmean_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_post_absmean_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+	
+<div class="viewcode-block" id="BeatInfo.ratio_on_absmean_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.ratio_on_absmean_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">ratio_on_absmean_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#ratio of post-rr interval to rms</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">onbeat_sdrri</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+
+	<span class="c1">#def ratio_post_on_sdrri(self):</span>
+	<span class="c1">#	return self.post_sdrri()/self.onbeat_sdrri()</span>
+
+	<span class="c1">#def ratio_on_pre_sdrri(self):  #has zero division error</span>
+	<span class="c1">#	return self.onbeat_sdrri()/self.pre_sdrri()</span>
+	
+	<span class="c1">#def ratio_post_pre_sdrri(self):</span>
+	<span class="c1">#	post = self.post_sdrri()</span>
+	<span class="c1">#	pre = self.pre_sdrri()</span>
+	<span class="c1">#	return post/pre</span>
+
+<div class="viewcode-block" id="BeatInfo.diff_post_on_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_post_on_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">diff_post_on_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">post_sdrri</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">onbeat_sdrri</span><span class="p">())</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+
+<div class="viewcode-block" id="BeatInfo.diff_on_pre_sdrri"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.diff_on_pre_sdrri">[docs]</a>	<span class="k">def</span> <span class="nf">diff_on_pre_sdrri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">onbeat_sdrri</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_sdrri</span><span class="p">())</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">absmeansdrri</span></div>
+	<span class="c1">#============================================================</span>
+	<span class="c1">#Waveform features</span>
+	<span class="c1">#============================================================</span>
+<div class="viewcode-block" id="BeatInfo.reported_rpeak"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.reported_rpeak">[docs]</a>	<span class="k">def</span> <span class="nf">reported_rpeak</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">wfpts</span><span class="p">[</span><span class="s1">&#39;beat_onset_org&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_max"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_max">[docs]</a>	<span class="k">def</span> <span class="nf">beat_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_min"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_min">[docs]</a>	<span class="k">def</span> <span class="nf">beat_min</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.maxmin_diff"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.maxmin_diff">[docs]</a>	<span class="k">def</span> <span class="nf">maxmin_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beat_max</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">beat_min</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BeatInfo.maxmin_ratio"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.maxmin_ratio">[docs]</a>	<span class="k">def</span> <span class="nf">maxmin_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beat_max</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">beat_min</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_mean"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_mean">[docs]</a>	<span class="k">def</span> <span class="nf">beat_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_std"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_std">[docs]</a>	<span class="k">def</span> <span class="nf">beat_std</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_skewness"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_skewness">[docs]</a>	<span class="k">def</span> <span class="nf">beat_skewness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_kurtosis"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_kurtosis">[docs]</a>	<span class="k">def</span> <span class="nf">beat_kurtosis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">stats</span><span class="o">.</span><span class="n">kurtosis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_5th_moment"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_5th_moment">[docs]</a>	<span class="k">def</span> <span class="nf">beat_5th_moment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_6th_moment"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_6th_moment">[docs]</a>	<span class="k">def</span> <span class="nf">beat_6th_moment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BeatInfo.beat_rms"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.beat_rms">[docs]</a>	<span class="k">def</span> <span class="nf">beat_rms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">rms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+		<span class="k">return</span> <span class="n">rms</span> </div>
+
+<div class="viewcode-block" id="BeatInfo.pqrst"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pqrst">[docs]</a>	<span class="k">def</span> <span class="nf">pqrst</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		120ms &lt;Normal_PR&lt; 220ms.</span>
+<span class="sd">		75ms  &lt;Normal_QRS&lt; 120ms</span>
+<span class="sd">		QRS region estimate 160ms. </span>
+<span class="sd">		Compute: QRS width,Q,R,S amplitudes.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">beat_pqrst</span> <span class="o">=</span> <span class="n">PQRST</span><span class="p">()</span>
+		<span class="n">beat_pqrst</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span>
+		<span class="n">p</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">pwave</span>
+		<span class="n">q</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">qwave</span>
+		<span class="n">r</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">rwave</span>
+		<span class="n">s</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">swave</span>
+		<span class="n">pr</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">pr_interval</span>
+		<span class="n">qs</span> <span class="o">=</span> <span class="n">beat_pqrst</span><span class="o">.</span><span class="n">qs_interval</span>
+		<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;p&#39;</span><span class="p">:</span><span class="n">p</span><span class="p">,</span><span class="s1">&#39;q&#39;</span><span class="p">:</span><span class="n">q</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">:</span><span class="n">r</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">:</span><span class="n">s</span><span class="p">,</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span><span class="n">pr</span><span class="p">,</span> <span class="s1">&#39;qs&#39;</span><span class="p">:</span><span class="n">qs</span><span class="p">}</span> </div>
+
+<div class="viewcode-block" id="BeatInfo.pqrst_segs"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pqrst_segs">[docs]</a>	<span class="k">def</span> <span class="nf">pqrst_segs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#splits the beat waveform into 3-segments using q and s points in the middle</span>
+		<span class="n">pqrst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span>
+		<span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">pqrst</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">pqrst</span><span class="p">[</span><span class="s1">&#39;s&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)]</span>
+
+		<span class="n">lmax</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmin</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmean</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmedian</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">std</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lskewness</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lkurtosis</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lrms</span> <span class="o">=</span> <span class="p">[]</span>
+		
+		<span class="k">try</span><span class="p">:</span>
+			<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+				<span class="n">s_ix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+				<span class="n">e_ix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+				<span class="n">seg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">[</span><span class="n">s_ix</span><span class="p">:</span><span class="n">e_ix</span><span class="p">]</span>
+				<span class="n">lmax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lmin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lmean</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lmedian</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">std</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lskewness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lkurtosis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">kurtosis</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+				<span class="n">lrms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">seg</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+
+			<span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">lmax</span><span class="p">,</span><span class="n">lmin</span><span class="p">,</span><span class="n">lmean</span><span class="p">,</span><span class="n">lmedian</span><span class="p">,</span><span class="n">std</span><span class="p">,</span><span class="n">lskewness</span><span class="p">,</span><span class="n">lkurtosis</span><span class="p">,</span><span class="n">lrms</span><span class="p">]</span>
+			
+			<span class="c1">#agg results</span>
+			<span class="n">mean_res</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="n">std_res</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="n">rms_res</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="k">for</span> <span class="n">mtrc</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+				<span class="n">mtrc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mtrc</span><span class="p">)</span>
+				<span class="n">mean_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mtrc</span><span class="p">))</span>
+				<span class="n">std_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">mtrc</span><span class="p">))</span>
+				<span class="n">rms_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mtrc</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+
+			<span class="n">aggs</span> <span class="o">=</span> <span class="p">[</span><span class="n">mean_res</span><span class="p">,</span><span class="n">std_res</span><span class="p">,</span><span class="n">rms_res</span><span class="p">]</span>
+			<span class="k">return</span> <span class="n">res</span><span class="p">,</span><span class="n">aggs</span> 
+		<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+			<span class="c1">#print(&#39;pqrst segs error!&#39;)</span>
+			<span class="c1">#print(&#39;rec_num={}, sindex={}&#39;.format(</span>
+			<span class="c1">#					self.data[&#39;rec_num&#39;],</span>
+			<span class="c1">#					self.data[&#39;start_idx&#39;]))</span>
+			<span class="n">res</span> <span class="o">=</span> <span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="mi">8</span>
+			<span class="n">aggs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span><span class="o">*</span><span class="mi">8</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
+			<span class="k">return</span> <span class="n">res</span><span class="p">,</span><span class="n">aggs</span></div>
+
+<div class="viewcode-block" id="BeatInfo.pr_interval"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pr_interval">[docs]</a>	<span class="k">def</span> <span class="nf">pr_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#pr interval in ms</span>
+		<span class="n">pr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;pr&#39;</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">pr</span></div>
+
+<div class="viewcode-block" id="BeatInfo.qs_interval"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.qs_interval">[docs]</a>	<span class="k">def</span> <span class="nf">qs_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#qs interval in ms</span>
+		<span class="n">qs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;qs&#39;</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">qs</span></div>
+
+<div class="viewcode-block" id="BeatInfo.qs_interval_nr"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.qs_interval_nr">[docs]</a>	<span class="k">def</span> <span class="nf">qs_interval_nr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#qs interval (normalized)</span>
+		<span class="n">qs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;qs&#39;</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">qs</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">rms_rri</span><span class="p">()</span></div>
+		
+<div class="viewcode-block" id="BeatInfo.pflag"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.pflag">[docs]</a>	<span class="k">def</span> <span class="nf">pflag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">==</span><span class="s1">&#39;N&#39;</span><span class="p">:</span>
+			<span class="k">return</span> <span class="mi">1</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="BeatInfo.nsampels"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.nsampels">[docs]</a>	<span class="k">def</span> <span class="nf">nsampels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+		<span class="c1">#get samples of the waveform</span>
+		<span class="n">dt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span><span class="o">/</span><span class="n">n_samples</span><span class="p">)</span>
+		<span class="n">samples</span><span class="o">=</span><span class="p">[]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">):</span>
+			<span class="n">samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span><span class="p">)])</span>
+		<span class="k">return</span> <span class="n">samples</span></div>
+
+<div class="viewcode-block" id="BeatInfo.sub_segs"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.sub_segs">[docs]</a>	<span class="k">def</span> <span class="nf">sub_segs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_subsegs</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+		<span class="c1">#splits the beat waveform into sub-segments of equal length</span>
+		<span class="n">lmax</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmin</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmean</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lmedian</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">std</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lskewness</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lkurtosis</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">lrms</span> <span class="o">=</span> <span class="p">[]</span>
+		
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subsegs</span><span class="p">):</span>
+			<span class="n">s_ix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="o">/</span><span class="n">n_subsegs</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">))</span>
+			<span class="n">e_ix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">n_subsegs</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">))</span>
+			<span class="n">seg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">[</span><span class="n">s_ix</span><span class="p">:</span><span class="n">e_ix</span><span class="p">]</span>
+			<span class="n">lmax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lmin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lmean</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lmedian</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">std</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lskewness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lkurtosis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">kurtosis</span><span class="p">(</span><span class="n">seg</span><span class="p">))</span>
+			<span class="n">lrms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">seg</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+
+		<span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">lmax</span><span class="p">,</span><span class="n">lmin</span><span class="p">,</span><span class="n">lmean</span><span class="p">,</span><span class="n">lmedian</span><span class="p">,</span><span class="n">std</span><span class="p">,</span><span class="n">lskewness</span><span class="p">,</span><span class="n">lkurtosis</span><span class="p">,</span><span class="n">lrms</span><span class="p">]</span>
+		
+		<span class="c1">#agg results</span>
+		<span class="n">mean_res</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">std_res</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">rms_res</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">mtrc</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+			<span class="n">mtrc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mtrc</span><span class="p">)</span>
+			<span class="n">mean_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mtrc</span><span class="p">))</span>
+			<span class="n">std_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">mtrc</span><span class="p">))</span>
+			<span class="n">rms_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mtrc</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+
+		<span class="n">aggs</span> <span class="o">=</span> <span class="p">[</span><span class="n">mean_res</span><span class="p">,</span><span class="n">std_res</span><span class="p">,</span><span class="n">rms_res</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">res</span><span class="p">,</span><span class="n">aggs</span></div>
+
+	<span class="c1">#============================================================</span>
+	<span class="c1">#Spectral features of the beat waveform</span>
+	<span class="c1">#============================================================</span>
+<div class="viewcode-block" id="BeatInfo.fft_features"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.fft_features">[docs]</a>	<span class="k">def</span> <span class="nf">fft_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c1">#return fft of each beat bwaveform as a list.</span>
+		<span class="n">sig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bwaveform</span>
+		<span class="n">num_samples</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">size</span>
+		<span class="c1">#xf = rfftfreq(num_samples, 1 / self.fs)</span>
+		<span class="n">yf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rfft</span><span class="p">(</span><span class="n">sig</span><span class="p">))</span>
+
+		<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">yf</span><span class="p">)</span></div>
+
+	<span class="c1">#============================================================</span>
+	<span class="c1">#helper functions</span>
+	<span class="c1">#============================================================ </span>
+<div class="viewcode-block" id="BeatInfo.plot_wf"><a class="viewcode-back" href="../../pyecg.html#pyecg.beat_info.BeatInfo.plot_wf">[docs]</a>	<span class="k">def</span> <span class="nf">plot_wf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">figure</span>
+		<span class="c1">#fig = figure.Figure()</span>
+		<span class="n">fig</span> <span class="o">=</span> <span class="n">figure</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">dpi</span><span class="o">=</span><span class="mi">170</span><span class="p">)</span>
+		<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">)</span>
+		<span class="c1">#plt.plot(bwaveform)</span>
+		<span class="n">beat_rpeak_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpeaks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bloc</span><span class="p">]</span>
+		<span class="n">beat_onset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wfpts</span><span class="p">[</span><span class="s1">&#39;beat_onset&#39;</span><span class="p">]</span>
+		<span class="n">beat_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wfpts</span><span class="p">[</span><span class="s1">&#39;beat_offset&#39;</span><span class="p">]</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">beat_onset</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">beat_onset</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;deeppink&#39;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&gt;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">beat_offset</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">beat_offset</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;deeppink&#39;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&lt;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+		<span class="n">rpk</span> <span class="o">=</span> <span class="n">beat_rpeak_idx</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">rpk</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">rpk</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">p</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="n">beat_onset</span>
+			<span class="n">q</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="n">beat_onset</span>
+			<span class="n">r</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="n">beat_onset</span>
+			<span class="n">s</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pqrst_dict</span><span class="p">[</span><span class="s1">&#39;s&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="n">beat_onset</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">p</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;cyan&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">q</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;magenta&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">r</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;violet&#39;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_waveform</span><span class="p">[</span><span class="n">s</span><span class="p">],</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;lime&#39;</span><span class="p">)</span>
+		<span class="k">except</span><span class="p">:</span>
+			<span class="k">pass</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+		<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+		<span class="n">ptnt</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;rec_num&#39;</span><span class="p">])</span>
+		<span class="n">fldr</span> <span class="o">=</span> <span class="s2">&quot;../wvplots/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ptnt</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="kn">import</span> <span class="nn">os</span>
+			<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">fldr</span><span class="p">,</span> <span class="n">exist_ok</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> 
+		<span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Folder can not be created!&quot;</span><span class="p">)</span>
+		<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">.jpg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fldr</span><span class="p">,</span> <span class="n">ptnt</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idx&#39;</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">))</span>
+		<span class="n">fig</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div></div>
+
+		<span class="c1">#TODO</span>
+		<span class="c1">#try longer times</span>
+		<span class="c1">#only plot abnormal beats and one before and after</span>
+		<span class="c1">#in pqrst file smooth beat before finding p q s waves--&gt;wavelet maybe</span>
+	 
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2023, Sadegh Mohammadi.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

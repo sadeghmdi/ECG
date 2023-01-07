@@ -1,0 +1,668 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>pyecg.data_handling &mdash; PyECG 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyECG
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">ecg</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyECG</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyecg.data_handling</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyecg.data_handling</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of a personal project and is copyrighted.If you have gained access</span>
+<span class="sd">to this file, please delete it and inform the owner by this email: sadegh0@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">wfdb</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">pyecg.data_info</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pyecg.data_preprocessing</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pyecg.beat_info</span> <span class="kn">import</span> <span class="n">BeatInfo</span>
+
+
+
+
+<div class="viewcode-block" id="DataHandling"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling">[docs]</a><span class="k">class</span> <span class="nc">DataHandling</span><span class="p">:</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Method save_dataset creates a file containing signal fragments</span>
+<span class="sd">	 			and their corresponding label</span>
+
+<span class="sd">	example:</span>
+<span class="sd">			dh = DataHandling(base_path=&#39;../data&#39;)</span>
+<span class="sd">			dh.save_dataset(records=DS2,save_file_name=&#39;DS2.dat&#39;)</span>
+<span class="sd">			x_test, y_test = dh.load_data(load_file_name=&#39;DS2.dat&#39;)</span>
+<span class="sd">			statReport = dh.report_stats_table([y_test],[&#39;test&#39;])</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">data_path</span><span class="o">=</span><span class="n">DATA_PATH</span><span class="p">,</span> <span class="n">win</span><span class="o">=</span><span class="p">[</span><span class="mi">60</span><span class="p">,</span><span class="mi">120</span><span class="p">],</span>
+												<span class="n">remove_bl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">lowpass</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">fs</span><span class="o">=</span><span class="mi">360</span><span class="p">,</span><span class="n">cutoff</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">base_path</span> <span class="o">=</span> <span class="n">base_path</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_path</span><span class="p">,</span> <span class="n">data_path</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">syms</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">MAP_AAMI</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">win</span> <span class="o">=</span> <span class="n">win</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">remove_bl</span> <span class="o">=</span> <span class="n">remove_bl</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">lowpass</span> <span class="o">=</span> <span class="n">lowpass</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">order</span>
+
+<div class="viewcode-block" id="DataHandling.get_signal_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.get_signal_data">[docs]</a>	<span class="k">def</span> <span class="nf">get_signal_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record_num</span><span class="o">=</span><span class="mi">106</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+		<span class="n">record</span> <span class="o">=</span> <span class="n">wfdb</span><span class="o">.</span><span class="n">rdrecord</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">record_num</span><span class="p">),</span> <span class="n">channel_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;MLII&#39;</span><span class="p">])</span>
+		<span class="n">annotation</span> <span class="o">=</span> <span class="n">wfdb</span><span class="o">.</span><span class="n">rdann</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">record_num</span><span class="p">),</span> <span class="s1">&#39;atr&#39;</span><span class="p">)</span>
+		<span class="n">signal</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">p_signal</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+		<span class="n">ann_locations</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">sample</span>
+		<span class="n">symbol</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">symbol</span>
+		<span class="n">aux</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">aux_note</span>
+		<span class="n">aux</span><span class="o">=</span><span class="p">[</span><span class="n">txt</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">txt</span> <span class="ow">in</span> <span class="n">aux</span><span class="p">]</span>
+		<span class="n">signal</span> <span class="o">=</span> <span class="n">denoise_signal</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span><span class="n">remove_bl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">remove_bl</span><span class="p">,</span>
+								<span class="n">lowpass</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lowpass</span><span class="p">,</span><span class="n">fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
+								<span class="n">cutoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">)</span> 
+		<span class="n">r_labels</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">r_locations</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">rhythms</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">rhythms_locations</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ann_locations</span><span class="p">)):</span>
+		  	<span class="k">if</span> <span class="n">symbol</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">syms</span><span class="p">:</span>
+		  		<span class="n">r_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">symbol</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+		  		<span class="n">r_locations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ann_locations</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+		  	<span class="k">if</span> <span class="n">aux</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">RHYTHM_TYPES</span><span class="p">:</span>
+		  		<span class="n">rhythms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aux</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+		  		<span class="n">rhythms_locations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ann_locations</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+		<span class="k">if</span> <span class="n">return_dict</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+			<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;signal&#39;</span><span class="p">:</span><span class="n">signal</span><span class="p">,</span> 
+					<span class="s1">&#39;r_locations&#39;</span><span class="p">:</span><span class="n">r_locations</span><span class="p">,</span> <span class="s1">&#39;r_labels&#39;</span><span class="p">:</span><span class="n">r_labels</span><span class="p">,</span> 
+					<span class="s1">&#39;rhythms&#39;</span><span class="p">:</span><span class="n">rhythms</span><span class="p">,</span> <span class="s1">&#39;rhythms_locations&#39;</span><span class="p">:</span><span class="n">rhythms_locations</span><span class="p">}</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">annots</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ann_locations</span><span class="p">)):</span>
+				<span class="n">annots</span><span class="p">[</span><span class="n">ann_locations</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+				<span class="k">if</span> <span class="n">aux</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span><span class="s1">&#39;&#39;</span><span class="p">:</span>
+					<span class="n">annots</span><span class="p">[</span><span class="n">ann_locations</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">aux</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">sig_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;time&#39;</span><span class="p">:</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="p">)),</span> <span class="s1">&#39;signal&#39;</span><span class="p">:</span><span class="n">signal</span><span class="p">,</span> <span class="s1">&#39;annots&#39;</span><span class="p">:</span><span class="n">annots</span><span class="p">}</span> 
+			<span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">sig_dict</span><span class="p">)</span>  </div>
+
+<div class="viewcode-block" id="DataHandling.make_frags"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.make_frags">[docs]</a>	<span class="k">def</span> <span class="nf">make_frags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">r_locations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r_label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_pre_rr</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">num_post_rr</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+		<span class="n">win</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span>
+		<span class="n">frags</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">beat_types</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">r_locs</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">s_idxs</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#start indexes</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pre_rr</span><span class="p">,(</span><span class="nb">len</span><span class="p">(</span><span class="n">r_locations</span><span class="p">)</span><span class="o">-</span><span class="n">num_post_rr</span><span class="p">)):</span>
+			<span class="n">start_idx</span> <span class="o">=</span> <span class="n">r_locations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">win</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+			<span class="n">end_idx</span> <span class="o">=</span> <span class="n">r_locations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">win</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+			<span class="n">seg</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">]</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span> <span class="o">==</span> <span class="n">win</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">win</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+				<span class="n">frags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
+				<span class="n">beat_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r_label</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+				<span class="n">r_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">r_locations</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">num_pre_rr</span> <span class="p">:</span> <span class="n">i</span><span class="o">+</span><span class="n">num_post_rr</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+				<span class="n">s_idxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">start_idx</span><span class="p">)</span>
+		<span class="n">signal_frags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">frags</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">signal_frags</span><span class="p">,</span> <span class="n">beat_types</span><span class="p">,</span> <span class="n">r_locs</span><span class="p">,</span> <span class="n">s_idxs</span> </div>
+
+<div class="viewcode-block" id="DataHandling.make_dataset"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.make_dataset">[docs]</a>	<span class="k">def</span> <span class="nf">make_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">records</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot; Creates the full dataset </span>
+<span class="sd">		xds : numpy array of the signal fragments. shape=(#fragments, length_of_fragment)</span>
+<span class="sd">		yds : list of corresponding types.  size=#fragments</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="n">records</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">records</span> <span class="o">=</span> <span class="n">RECORDS</span>
+		<span class="n">xds</span><span class="o">=</span><span class="p">[]</span>
+		<span class="n">yds</span><span class="o">=</span><span class="p">[]</span>
+		<span class="n">rds</span><span class="o">=</span><span class="p">[]</span>
+		<span class="n">start_idxs</span><span class="o">=</span><span class="p">[]</span>
+		<span class="n">rec_num_list</span><span class="o">=</span><span class="p">[]</span> <span class="c1">#debug</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">))):</span>
+			<span class="n">rec_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_signal_data</span><span class="p">(</span><span class="n">record_num</span><span class="o">=</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+			<span class="n">signal</span><span class="p">,</span><span class="n">r_locations</span><span class="p">,</span><span class="n">r_labels</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">rec_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> 
+			<span class="n">signal_frags</span><span class="p">,</span> <span class="n">beat_types</span><span class="p">,</span> <span class="n">r_locs</span><span class="p">,</span> <span class="n">s_idxs</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_frags</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">r_locations</span><span class="p">,</span> <span class="n">r_labels</span><span class="p">)</span>
+			<span class="n">start_idxs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">s_idxs</span><span class="p">)</span>
+			<span class="n">rec_num_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">start_idxs</span><span class="p">))</span>
+			<span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span> <span class="o">+</span> <span class="n">signal_frags</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">yds</span> <span class="o">=</span> <span class="n">yds</span> <span class="o">+</span> <span class="n">beat_types</span> 
+			<span class="n">rds</span> <span class="o">=</span> <span class="n">rds</span> <span class="o">+</span> <span class="n">r_locs</span> 
+			<span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+		<span class="n">xds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xds</span><span class="p">)</span>
+		<span class="n">yds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">yds</span><span class="p">)</span>
+
+		<span class="n">beat_feats</span><span class="p">,</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beat_info_feat</span><span class="p">({</span>
+			<span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xds</span><span class="p">,</span>
+			<span class="s1">&#39;rpeaks&#39;</span><span class="p">:</span><span class="n">rds</span><span class="p">,</span>
+			<span class="s1">&#39;rec_nums&#39;</span><span class="p">:</span> <span class="n">rec_num_list</span><span class="p">,</span>
+			<span class="s1">&#39;start_idxs&#39;</span><span class="p">:</span> <span class="n">start_idxs</span><span class="p">,</span>
+			<span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">yds</span><span class="p">},</span> 
+			<span class="n">beat_loc</span><span class="o">=</span><span class="mi">50</span>
+			<span class="p">)</span>
+		<span class="n">beat_feats</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">beat_feat</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span> <span class="k">for</span> <span class="n">beat_feat</span> <span class="ow">in</span> <span class="n">beat_feats</span><span class="p">]</span>
+		<span class="n">beat_feats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">beat_feats</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xds</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">beat_feats</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">labels</span><span class="p">)}</span> </div>
+
+<div class="viewcode-block" id="DataHandling.beat_info_feat"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.beat_info_feat">[docs]</a>	<span class="k">def</span> <span class="nf">beat_info_feat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">beat_loc</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+		<span class="c1">#takes as input a dictionary containing an arrays of signal fragments and</span>
+		<span class="c1">#their corrsponding r locations</span>
+		<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">])</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idxs&#39;</span><span class="p">]),</span> <span class="s2">&quot;len must be equal!&quot;</span>
+
+		
+		<span class="n">features</span><span class="o">=</span><span class="p">[]</span>
+		<span class="n">labels</span><span class="o">=</span> <span class="p">[]</span>
+		<span class="c1">#beats loop</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;rpeaks&#39;</span><span class="p">]))):</span> 
+			<span class="n">beatinfo</span> <span class="o">=</span> <span class="n">BeatInfo</span><span class="p">(</span><span class="n">beat_loc</span><span class="o">=</span><span class="n">beat_loc</span><span class="p">)</span>
+			<span class="n">beatinfo</span><span class="p">({</span><span class="s1">&#39;waveform&#39;</span><span class="p">:</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> 
+					  <span class="s1">&#39;rpeak&#39;</span><span class="p">:</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;rpeaks&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> 
+					  <span class="s1">&#39;rec_num&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;rec_nums&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+					  <span class="s1">&#39;start_idx&#39;</span><span class="p">:</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_idxs&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+					  <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+					  <span class="p">})</span>
+			<span class="c1">#check if the beat correctly annotated</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">beatinfo</span><span class="o">.</span><span class="n">bwaveform</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">continue</span>
+
+			<span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="c1">#res[&#39;post_rri&#39;] = beatinfo.post_rri()</span>
+			<span class="c1">#res[&#39;pre_rri&#39;] = beatinfo.pre_rri() </span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;ratio_post_pre&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">ratio_post_pre</span><span class="p">()</span>
+			<span class="c1">#res[&#39;diff_post_pre&#39;] = beatinfo.diff_post_pre()</span>
+			<span class="c1">#res[&#39;diff_post_pre_nr&#39;] = beatinfo.diff_post_pre_nr()</span>
+			<span class="c1">#res[&#39;mean_rri&#39;] = beatinfo.mean_rri()</span>
+			<span class="c1">#res[&#39;rms_rri&#39;] = beatinfo.rms_rri()</span>
+			<span class="c1">#res[&#39;std_rri&#39;] = beatinfo.std_rri()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;ratio_pre_avg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">ratio_pre_avg</span><span class="p">()</span> 	<span class="c1">#</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;ratio_post_avg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">ratio_post_avg</span><span class="p">()</span>  	<span class="c1">#</span>
+			<span class="c1">#res[&#39;ratio_pre_rms&#39;] = beatinfo.ratio_pre_rms()</span>
+			<span class="c1">#res[&#39;ratio_post_rms&#39;] = beatinfo.ratio_post_rms()</span>
+			<span class="c1">#res[&#39;diff_pre_avg_nr&#39;] = beatinfo.diff_pre_avg_nr()</span>
+			<span class="c1">#res[&#39;diff_post_avg_nr&#39;] = beatinfo.diff_post_avg_nr()</span>
+			<span class="c1">#res[&#39;compensate_ratio&#39;] = beatinfo.compensate_ratio()  </span>
+			<span class="c1">#res[&#39;compensate_diff_nr&#39;] = beatinfo.compensate_diff_nr()</span>
+			<span class="c1">#res[&#39;heart_rate&#39;] = beatinfo.heart_rate()</span>
+
+			<span class="c1">#res[&#39;post_sdrri&#39;] = beatinfo.post_sdrri()</span>
+			<span class="c1">#res[&#39;pre_sdrri&#39;] = beatinfo.pre_sdrri() </span>
+			<span class="c1">#res[&#39;diff_post_pre_sdrri&#39;] = beatinfo.diff_post_pre_sdrri()</span>
+			<span class="c1">#res[&#39;diff_post_pre_nr_sdrri&#39;] = beatinfo.diff_post_pre_nr_sdrri()</span>
+			<span class="c1">#res[&#39;mean_sdrri&#39;] = beatinfo.mean_sdrri()</span>
+			<span class="c1">#res[&#39;absmean_sdrri&#39;] = beatinfo.absmean_sdrri()</span>
+			<span class="c1">#res[&#39;rms_sdrri&#39;] = beatinfo.rms_sdrri()</span>
+			<span class="c1">#res[&#39;std_sdrri&#39;] = beatinfo.std_sdrri()</span>
+			<span class="c1">#res[&#39;diff_on_avg_sdrri_nr&#39;] = beatinfo.diff_on_avg_sdrri_nr()</span>
+			<span class="c1">#res[&#39;ratio_pre_rms_sdrri&#39;] = beatinfo.ratio_pre_rms_sdrri()</span>
+			<span class="c1">#res[&#39;ratio_post_rms_sdrri&#39;] = beatinfo.ratio_post_rms_sdrri()</span>
+			<span class="c1">#res[&#39;ratio_on_rms_sdrri&#39;] = beatinfo.ratio_on_rms_sdrri()</span>
+			<span class="c1">#res[&#39;ratio_pre_absmean_sdrri&#39;] = beatinfo.ratio_pre_absmean_sdrri()</span>
+			<span class="c1">#res[&#39;ratio_post_absmean_sdrri&#39;] = beatinfo.ratio_post_absmean_sdrri()</span>
+			<span class="c1">#res[&#39;ratio_on_absmean_sdrri&#39;] = beatinfo.ratio_on_absmean_sdrri()</span>
+			<span class="c1">##res[&#39;ratio_post_on_sdrri&#39;] = beatinfo.ratio_post_on_sdrri()</span>
+			<span class="c1">##res[&#39;ratio_on_pre_sdrri&#39;] = beatinfo.ratio_on_pre_sdrri()</span>
+			<span class="c1">##res[&#39;ratio_post_pre_sdrri&#39;] = beatinfo.ratio_post_pre_sdrri()</span>
+			<span class="c1">#res[&#39;diff_post_on_sdrri&#39;] = beatinfo.diff_post_on_sdrri()</span>
+			<span class="c1">#res[&#39;diff_on_pre_sdrri&#39;] = beatinfo.diff_on_pre_sdrri()</span>
+
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_max</span><span class="p">()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_min&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_min</span><span class="p">()</span>
+			<span class="c1"># res[&#39;maxmin_diff&#39;] = beatinfo.maxmin_diff()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;maxmin_ratio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">maxmin_ratio</span><span class="p">()</span> 	<span class="c1">#</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_mean&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_mean</span><span class="p">()</span> <span class="c1">#</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_std&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_std</span><span class="p">()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_skewness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_skewness</span><span class="p">()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_kurtosis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_kurtosis</span><span class="p">()</span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;beat_rms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">beat_rms</span><span class="p">()</span> 	<span class="c1">#</span>
+			<span class="c1">#res[&#39;pr_interval&#39;] = beatinfo.pr_interval() </span>
+			<span class="c1">#res[&#39;qs_interval&#39;] = beatinfo.qs_interval() </span>
+			<span class="n">res</span><span class="p">[</span><span class="s1">&#39;pflag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">pflag</span><span class="p">()</span>
+
+			<span class="c1">#samples of waveform</span>
+			<span class="n">samples</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">nsampels</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)):</span>
+				<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;sample&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ss</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+				<span class="n">res</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span>  <span class="n">samples</span><span class="p">[</span><span class="n">ss</span><span class="p">]</span>
+
+			<span class="c1">#features of splitted beat waveform --10</span>
+			<span class="n">ten_segs</span><span class="p">,</span><span class="n">aggs</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">sub_segs</span><span class="p">(</span><span class="n">n_subsegs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>  <span class="c1">#many features a lis of lists</span>
+			<span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ten_segs</span><span class="p">)):</span>
+				<span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ten_segs</span><span class="p">[</span><span class="n">l</span><span class="p">])):</span>
+					<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;mt&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;_seg&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">it</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+					<span class="c1">#res[key] =  ten_segs[l][it]</span>
+
+			<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aggs</span><span class="p">)):</span>
+				<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aggs</span><span class="p">[</span><span class="n">m</span><span class="p">])):</span>
+					<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;agg&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;mt&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+					<span class="c1">#res[key] =  aggs[m][j]	</span>
+
+			<span class="c1">#features of splitted beat waveform -- 3 pqrst</span>
+			<span class="n">pqrst_segs</span><span class="p">,</span><span class="n">aggs</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">pqrst_segs</span><span class="p">()</span>  <span class="c1">#many features a lis of lists</span>
+			<span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pqrst_segs</span><span class="p">))):</span>
+				<span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pqrst_segs</span><span class="p">[</span><span class="n">l</span><span class="p">])):</span>
+					<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;mt&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;_pqrst&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">it</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+					<span class="c1">#res[key] =  pqrst_segs[l][it]</span>
+
+			<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">aggs</span><span class="p">))):</span>
+				<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aggs</span><span class="p">[</span><span class="n">n</span><span class="p">])):</span>
+					<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;aggpqrst&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;mt&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+					<span class="c1">#res[key] =  aggs[n][j]</span>
+
+			<span class="c1">#fft features</span>
+			<span class="n">yf</span> <span class="o">=</span> <span class="n">beatinfo</span><span class="o">.</span><span class="n">fft_features</span><span class="p">()</span>
+			<span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">yf</span><span class="p">)):</span>
+				<span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;fft_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+				<span class="c1">#res[key] = yf[i]</span>
+
+			<span class="c1">#append for each beat</span>
+			<span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+			<span class="c1">#only append labels for beats that are correct</span>
+			<span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">beatinfo</span><span class="o">.</span><span class="n">label</span><span class="p">)</span> 
+
+			<span class="c1">#import time</span>
+			<span class="c1">#time.sleep(0.3)</span>
+		<span class="k">return</span> <span class="n">features</span><span class="p">,</span><span class="n">labels</span></div>
+
+<div class="viewcode-block" id="DataHandling.clean_irrelevant_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.clean_irrelevant_data">[docs]</a>	<span class="k">def</span> <span class="nf">clean_irrelevant_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot; Removes irrelevant symbols&quot;&quot;&quot;</span>
+		<span class="n">yds</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span>
+		<span class="n">xds</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">]</span>
+		<span class="n">rds</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;beat_feats&#39;</span><span class="p">]</span>
+		<span class="n">indexes_rm</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">yds</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">syms</span><span class="p">]</span>
+		<span class="c1">#indexes_rm = np.where(np.invert(np.isin(yds, self.syms)))[0]</span>
+		<span class="n">xds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">xds</span><span class="p">,</span> <span class="n">indexes_rm</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">rds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">rds</span><span class="p">,</span> <span class="n">indexes_rm</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">yds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">yds</span><span class="p">,</span> <span class="n">indexes_rm</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="c1">#ydsc = [it for ind,it in enumerate(yds) if ind not in indexes_rm]</span>
+		<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xds</span><span class="p">,</span><span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">rds</span><span class="p">,</span><span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">yds</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="DataHandling.search_label"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.search_label">[docs]</a>	<span class="k">def</span> <span class="nf">search_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="s1">&#39;N&#39;</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;return the corresponding indexes for a patricular label&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+			<span class="n">yds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inp</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">])</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+			<span class="n">yds</span> <span class="o">=</span> <span class="n">inp</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;input must be a dictionary or a numpy array!&quot;</span><span class="p">)</span>
+		<span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">yds</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span><span class="o">==</span><span class="n">sym</span><span class="p">]</span>
+		<span class="k">return</span> <span class="n">indexes</span></div>
+
+<div class="viewcode-block" id="DataHandling.report_stats"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.report_stats">[docs]</a>	<span class="k">def</span> <span class="nf">report_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yds_list</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Number of samples of each class in the array&quot;&quot;&quot;</span>
+		<span class="n">res_list</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">yds</span> <span class="ow">in</span> <span class="n">yds_list</span><span class="p">:</span>
+			<span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+			<span class="k">for</span> <span class="n">sym</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">syms</span><span class="p">:</span>
+				<span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">yds</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span><span class="o">==</span><span class="n">sym</span><span class="p">]</span>
+				<span class="n">res</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">indexes</span><span class="p">)</span>
+			<span class="n">res_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">res_list</span></div>
+
+<div class="viewcode-block" id="DataHandling.report_stats_table"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.report_stats_table">[docs]</a>	<span class="k">def</span> <span class="nf">report_stats_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yds_list</span><span class="p">,</span> <span class="n">name_list</span><span class="o">=</span><span class="p">[]):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Number of samples of each class in the array shown in tabular form&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">yds_list</span><span class="p">):</span>
+			<span class="n">indx</span> <span class="o">=</span>  <span class="n">name_list</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">indx</span> <span class="o">=</span> <span class="kc">None</span>
+		<span class="n">res_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_stats</span><span class="p">(</span><span class="n">yds_list</span><span class="p">)</span>
+		<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res_list</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">indx</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="DataHandling.save_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.save_data">[docs]</a>	<span class="k">def</span> <span class="nf">save_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">save_file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">save_file_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Save file path is not provided!&#39;</span><span class="p">)</span>
+		<span class="n">save_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_path</span><span class="p">,</span> <span class="n">save_file_name</span><span class="p">)</span>		
+		<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_file_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+			<span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;file saved: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">save_file_path</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DataHandling.save_dataset"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.save_dataset">[docs]</a>	<span class="k">def</span> <span class="nf">save_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">records</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Saves the signal fragments and their labels into a file&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="n">save_file_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Save file path is not provided!&#39;</span><span class="p">)</span>
+		<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dataset</span><span class="p">(</span><span class="n">records</span><span class="o">=</span><span class="n">records</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">clean</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+			<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_irrelevant_data</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">save_data</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">save_file_name</span><span class="o">=</span><span class="n">save_file_name</span><span class="p">)</span></div>
+	
+<div class="viewcode-block" id="DataHandling.save_dataset_single"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.save_dataset_single">[docs]</a>	<span class="k">def</span> <span class="nf">save_dataset_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">save_file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Saves the signal fragments and their labels into a file for a single record</span>
+<span class="sd">		split_ratio for training and test sets of a single signal.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dataset</span><span class="p">(</span><span class="n">records</span><span class="o">=</span><span class="p">[</span><span class="n">record</span><span class="p">])</span>
+		<span class="k">if</span> <span class="n">clean</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+			<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_irrelevant_data</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+		<span class="c1">#slice the dataset based on the split_ratio</span>
+		<span class="n">xarr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">]</span>
+		<span class="n">farr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;beat_feats&#39;</span><span class="p">]</span>
+		<span class="n">yarr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span>
+		<span class="nb">print</span><span class="p">(</span><span class="n">xarr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+		<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xarr</span><span class="p">))</span>
+		<span class="n">split_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">*</span><span class="n">xarr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+		<span class="n">xarr_train</span> <span class="o">=</span> <span class="n">xarr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+		<span class="n">xarr_test</span> <span class="o">=</span> <span class="n">xarr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+		<span class="n">farr_train</span> <span class="o">=</span> <span class="n">farr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+		<span class="n">farr_test</span> <span class="o">=</span> <span class="n">farr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+		<span class="n">yarr_train</span> <span class="o">=</span> <span class="n">yarr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+		<span class="n">yarr_test</span> <span class="o">=</span> <span class="n">yarr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+		
+
+		<span class="n">ds_train</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xarr_train</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">farr_train</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">yarr_train</span><span class="p">}</span>
+		<span class="n">ds_test</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xarr_test</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">farr_test</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">yarr_test</span><span class="p">}</span>
+		<span class="k">if</span> <span class="n">save_file_name</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+			<span class="n">file_train</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_train&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+			<span class="n">file_test</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_test&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">file_train</span> <span class="o">=</span> <span class="n">save_file_name</span><span class="o">+</span><span class="s1">&#39;_train&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+			<span class="n">file_test</span> <span class="o">=</span> <span class="n">save_file_name</span><span class="o">+</span><span class="s1">&#39;_test&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">save_data</span><span class="p">(</span><span class="n">ds_train</span><span class="p">,</span> <span class="n">save_file_name</span> <span class="o">=</span> <span class="n">file_train</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">save_data</span><span class="p">(</span><span class="n">ds_test</span><span class="p">,</span> <span class="n">save_file_name</span> <span class="o">=</span> <span class="n">file_test</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataHandling.save_dataset_intra"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.save_dataset_intra">[docs]</a>	<span class="k">def</span> <span class="nf">save_dataset_intra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">records</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">save_file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Saves the signal fragments and their labels into a file for provided records</span>
+<span class="sd">		split_ratio for training and test sets of signals.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">xdata_train</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">fdata_train</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">ydata_train</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">xdata_test</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">fdata_test</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">ydata_test</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+			<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_dataset</span><span class="p">(</span><span class="n">records</span><span class="o">=</span><span class="p">[</span><span class="n">record</span><span class="p">])</span>
+			<span class="k">if</span> <span class="n">clean</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+				<span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_irrelevant_data</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+			<span class="c1">#slice the dataset based on the split_ratio</span>
+			<span class="n">xarr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">]</span>
+			<span class="n">farr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;beat_feats&#39;</span><span class="p">]</span>
+			<span class="n">yarr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span>
+			<span class="nb">print</span><span class="p">(</span><span class="n">xarr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+			<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xarr</span><span class="p">))</span>
+			<span class="n">split_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">*</span><span class="n">xarr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+			<span class="n">xarr_train</span> <span class="o">=</span> <span class="n">xarr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+			<span class="n">xarr_test</span> <span class="o">=</span> <span class="n">xarr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+			<span class="n">farr_train</span> <span class="o">=</span> <span class="n">farr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+			<span class="n">farr_test</span> <span class="o">=</span> <span class="n">farr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+			<span class="n">yarr_train</span> <span class="o">=</span> <span class="n">yarr</span><span class="p">[:</span><span class="n">split_idx</span><span class="p">]</span>
+			<span class="n">yarr_test</span> <span class="o">=</span> <span class="n">yarr</span><span class="p">[</span><span class="n">split_idx</span><span class="p">:]</span>
+			
+			<span class="n">xdata_train</span> <span class="o">=</span> <span class="n">xdata_train</span> <span class="o">+</span> <span class="n">xarr_train</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">fdata_train</span> <span class="o">=</span> <span class="n">fdata_train</span> <span class="o">+</span> <span class="n">farr_train</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">ydata_train</span> <span class="o">=</span> <span class="n">ydata_train</span> <span class="o">+</span> <span class="n">yarr_train</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">xdata_test</span> <span class="o">=</span> <span class="n">xdata_test</span> <span class="o">+</span> <span class="n">xarr_test</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">fdata_test</span> <span class="o">=</span> <span class="n">fdata_test</span> <span class="o">+</span> <span class="n">farr_test</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+			<span class="n">ydata_test</span> <span class="o">=</span> <span class="n">ydata_test</span> <span class="o">+</span> <span class="n">yarr_test</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+		<span class="n">xdata_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xdata_train</span><span class="p">)</span>
+		<span class="n">fdata_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fdata_train</span><span class="p">)</span>
+		<span class="n">ydata_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ydata_train</span><span class="p">)</span>
+		<span class="n">xdata_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xdata_test</span><span class="p">)</span>
+		<span class="n">fdata_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fdata_test</span><span class="p">)</span>
+		<span class="n">ydata_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ydata_test</span><span class="p">)</span>
+
+		<span class="n">ds_train</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xdata_train</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">fdata_train</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">ydata_train</span><span class="p">}</span>
+		<span class="n">ds_test</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">xdata_test</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">fdata_test</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">ydata_test</span><span class="p">}</span>
+		<span class="k">if</span> <span class="n">save_file_name</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+			<span class="n">file_train</span> <span class="o">=</span> <span class="s1">&#39;intra_train&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+			<span class="n">file_test</span> <span class="o">=</span> <span class="s1">&#39;intra_test&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">file_train</span> <span class="o">=</span> <span class="n">save_file_name</span><span class="o">+</span><span class="s1">&#39;_train&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+			<span class="n">file_test</span> <span class="o">=</span> <span class="n">save_file_name</span><span class="o">+</span><span class="s1">&#39;_test&#39;</span><span class="o">+</span><span class="s1">&#39;.beat&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">save_data</span><span class="p">(</span><span class="n">ds_train</span><span class="p">,</span> <span class="n">save_file_name</span> <span class="o">=</span> <span class="n">file_train</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">save_data</span><span class="p">(</span><span class="n">ds_test</span><span class="p">,</span> <span class="n">save_file_name</span> <span class="o">=</span> <span class="n">file_test</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataHandling.load_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.load_data">[docs]</a>	<span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Load file path is not provided!&#39;</span><span class="p">)</span>
+		<span class="n">load_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_path</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>	
+		<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">load_file_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+			<span class="n">ds</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+			<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;file loaded: &#39;</span> <span class="o">+</span> <span class="n">load_file_path</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;shape of &quot;</span><span class="si">{}</span><span class="s1">&quot; is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+			<span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">report_stats_table</span><span class="p">([</span><span class="n">ds</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]],[</span><span class="n">file_name</span><span class="p">]))</span>
+		<span class="k">return</span> <span class="n">ds</span></div>
+
+<div class="viewcode-block" id="DataHandling.per_record_stats"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.DataHandling.per_record_stats">[docs]</a>	<span class="k">def</span> <span class="nf">per_record_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rec_num_list</span><span class="o">=</span><span class="n">DS1</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="c1">#return a table containing the number of each type in each record</span>
+		<span class="k">if</span> <span class="n">cols</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+			<span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">syms</span>
+		<span class="n">ld</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">rec_num</span> <span class="ow">in</span> <span class="n">rec_num_list</span><span class="p">:</span>
+				<span class="n">rec_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_signal_data</span><span class="p">(</span><span class="n">record_num</span><span class="o">=</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> 
+				<span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">rec_dict</span><span class="p">[</span><span class="s1">&#39;r_labels&#39;</span><span class="p">],</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+				<span class="n">ld</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+
+		<span class="n">df</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="n">rec_num_list</span><span class="p">)</span>
+		<span class="n">df</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+		<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int32&#39;</span><span class="p">)</span>
+		<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">))]</span>
+		<span class="k">return</span> <span class="n">df</span></div></div>
+
+
+
+<span class="c1">##---------------------------</span>
+<div class="viewcode-block" id="stndr"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.stndr">[docs]</a><span class="k">def</span> <span class="nf">stndr</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span><span class="n">mean</span><span class="p">,</span><span class="n">std</span><span class="p">):</span>
+		<span class="n">X</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+		<span class="n">X</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">X</span></div>
+		
+<div class="viewcode-block" id="slice_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.slice_data">[docs]</a><span class="k">def</span> <span class="nf">slice_data</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">labels_list</span><span class="p">):</span>
+	<span class="c1">#only keep the lables in lable_list</span>
+	<span class="c1">#ds = copy.copy(ds)</span>
+	<span class="n">sliced_x</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;waveforms&#39;</span><span class="p">]</span>
+	<span class="n">sliced_r</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;beat_feats&#39;</span><span class="p">]</span> 
+	<span class="n">sliced_y</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span> 
+	<span class="n">indexes_keep</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">labels_list</span><span class="p">:</span>
+		<span class="n">inds</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sliced_y</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span><span class="o">==</span><span class="n">sym</span><span class="p">]</span>
+		<span class="n">indexes_keep</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span>
+	<span class="n">sliced_x</span> <span class="o">=</span> <span class="n">sliced_x</span><span class="p">[</span><span class="n">indexes_keep</span><span class="p">]</span>
+	<span class="n">sliced_r</span> <span class="o">=</span> <span class="n">sliced_r</span><span class="p">[</span><span class="n">indexes_keep</span><span class="p">]</span>
+	<span class="n">sliced_y</span> <span class="o">=</span> <span class="n">sliced_y</span><span class="p">[</span><span class="n">indexes_keep</span><span class="p">]</span>
+	<span class="c1">#sliced_y = [sliced_y[i] for i in indexes_keep]</span>
+
+	<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;waveforms&#39;</span><span class="p">:</span><span class="n">sliced_x</span><span class="p">,</span> <span class="s1">&#39;beat_feats&#39;</span><span class="p">:</span><span class="n">sliced_r</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span><span class="n">sliced_y</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="binarize_lables"><a class="viewcode-back" href="../../pyecg.html#pyecg.data_handling.binarize_lables">[docs]</a><span class="k">def</span> <span class="nf">binarize_lables</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="n">positive_lable</span><span class="p">,</span><span class="n">pos</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">neg</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+	<span class="c1">#y a list of lables</span>
+	<span class="c1">#positive_lable: positive class lable </span>
+	<span class="n">new_y</span> <span class="o">=</span> <span class="p">[</span><span class="n">pos</span> <span class="k">if</span> <span class="n">item</span><span class="o">==</span><span class="n">positive_lable</span> <span class="k">else</span> <span class="n">neg</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+	<span class="k">return</span> <span class="n">new_y</span>  </div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2023, Sadegh Mohammadi.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

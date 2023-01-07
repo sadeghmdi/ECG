@@ -33,6 +33,21 @@ def model_arch(params_model):
 	r_input_dim = int(params_model['r_input_dim'])
 	num_classes = int(params_model['num_classes'])
 
+	input1_layer = Input(shape=(x_input_dim), name='x_input')
+	input2_layer = Input(shape=(r_input_dim), name='r_input')
+
+	#input: (None,d1,d2)
+	out = tf.expand_dims(input2_layer, axis=-1)
+	out = BatchNormalization(axis=-1)(out)
+	out = Flatten()(out)
+
+	out = Dense(256,activation='relu')(out)
+	out = Dropout(0.50)(out)
+
+	out = Dense(128,activation='relu')(out)
+
+	out = Dropout(0.30)(out)
+	out = Dense(num_classes, activation="softmax")(out)
 	
 	return tf.keras.Model(inputs=[input1_layer,input2_layer], outputs=out, name='Model_Beat')
 

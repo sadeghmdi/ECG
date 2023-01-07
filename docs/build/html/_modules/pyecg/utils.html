@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>pyecg.utils &mdash; PyECG 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyECG
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">ecg</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyECG</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyecg.utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyecg.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of a personal project and is copyrighted.If you have gained access</span>
+<span class="sd">to this file, please delete it and inform the owner by this email: sadegh0@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">pyecg.data_info</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+
+
+<div class="viewcode-block" id="reset_seed"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.reset_seed">[docs]</a><span class="k">def</span> <span class="nf">reset_seed</span><span class="p">(</span><span class="n">seed_value</span><span class="o">=</span> <span class="mi">22</span><span class="p">):</span>
+	<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">random</span>
+	<span class="kn">import</span> <span class="nn">random</span> <span class="k">as</span> <span class="nn">python_random</span>
+	<span class="kn">import</span> <span class="nn">os</span>
+	<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+	<span class="c1">#must run every time</span>
+	<span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed_value</span><span class="p">)</span>
+	<span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">seed_value</span><span class="p">)</span>
+	<span class="n">python_random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed_value</span><span class="p">)</span>
+	<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PYTHONHASHSEED&#39;</span><span class="p">]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">seed_value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="integer_mapping"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.integer_mapping">[docs]</a><span class="k">def</span> <span class="nf">integer_mapping</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">map</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="n">y</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+	<span class="k">if</span> <span class="ow">not</span> <span class="n">inverse</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="nb">map</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">invmap</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">invmap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="mapping_AAMI"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.mapping_AAMI">[docs]</a><span class="k">def</span> <span class="nf">mapping_AAMI</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="nb">map</span><span class="p">):</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="nb">map</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+	<span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="plot_loss"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.plot_loss">[docs]</a><span class="k">def</span> <span class="nf">plot_loss</span><span class="p">(</span><span class="n">model_history</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="c1"># Plot training &amp; validation loss</span>
+	<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+	<span class="k">if</span> <span class="n">p</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
+		<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;plotstyle.txt&#39;</span><span class="p">)</span>
+
+	<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">model_history</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">model_history</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;val_loss&#39;</span><span class="p">],</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Training Loss&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Loss&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epoch&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Validation&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_spectogram"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.plot_spectogram">[docs]</a><span class="k">def</span> <span class="nf">plot_spectogram</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">sampling_rate</span> <span class="o">=</span> <span class="mi">360</span><span class="p">,</span> <span class="n">win</span> <span class="o">=</span> <span class="mi">127</span><span class="p">,</span> <span class="n">overlap</span> <span class="o">=</span> <span class="mi">122</span><span class="p">):</span>
+	<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span> 
+	<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">signal</span>
+
+	<span class="c1">#f,t,Sxx= signal.spectrogram(sig, fs=sampling_rate, nperseg=win,nfft=win, noverlap=overlap, mode=&#39;psd&#39;)</span>
+	<span class="c1">#Sxx_log = 10*np.log10(Sxx)</span>
+	<span class="c1">#plt.pcolormesh(t, f, Sxx_log)</span>
+	<span class="c1">#plt.ylabel(&#39;Frequency [Hz]&#39;)</span>
+	<span class="c1">#plt.xlabel(&#39;Time [sec]&#39;)</span>
+	<span class="c1">#plt.show()</span>
+
+	<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+	<span class="n">Pxx</span><span class="p">,</span> <span class="n">freqs</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">specgram</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">Fs</span><span class="o">=</span><span class="n">sampling_rate</span><span class="p">,</span> <span class="n">NFFT</span><span class="o">=</span><span class="n">win</span><span class="p">,</span> <span class="n">noverlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;psd&#39;</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">Pxx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+	<span class="n">expected</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span><span class="o">-</span><span class="n">overlap</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">win</span><span class="o">-</span><span class="n">overlap</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Expexted:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">expected</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="save_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.save_data">[docs]</a><span class="k">def</span> <span class="nf">save_data</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">file_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;File path must be provided&#39;</span><span class="p">)</span>
+	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+		<span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;File saved: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="load_data"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.load_data">[docs]</a><span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">file_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;File path must be provided&#39;</span><span class="p">)</span>
+	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+		<span class="n">ds</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;File loaded: &#39;</span> <span class="o">+</span> <span class="n">file_path</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">ds</span></div>
+
+
+<div class="viewcode-block" id="plot_signal"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.plot_signal">[docs]</a><span class="k">def</span> <span class="nf">plot_signal</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+	<span class="c1">#data: 1d signal as a pandas dataframe, numpy array, or a list</span>
+	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+		<span class="k">pass</span>
+	<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="nb">list</span><span class="p">)):</span>
+		<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Time&#39;</span><span class="p">:</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)),</span> <span class="s1">&#39;Signal&#39;</span><span class="p">:</span><span class="n">data</span><span class="p">})</span>
+	
+
+	<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;ECG&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;Time&#39;</span><span class="p">,</span>  <span class="n">y</span><span class="o">=</span><span class="s1">&#39;Signal&#39;</span><span class="p">)</span>
+
+	<span class="c1">#fig = go.Figure()</span>
+<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	fig.add_trace(</span>
+<span class="sd">		go.Scatter(</span>
+<span class="sd">			x=dfsignal[&#39;Index&#39;],</span>
+<span class="sd">			y=dfsignal[&#39;Signal&#39;],</span>
+<span class="sd">			#text=R_types,</span>
+<span class="sd">			mode=&quot;lines&quot;,</span>
+<span class="sd">			line=go.scatter.Line(color=&quot;black&quot;),</span>
+<span class="sd">			showlegend=False)</span>
+<span class="sd">	)</span>
+<span class="sd">	fig.add_trace(</span>
+<span class="sd">		go.Scatter(</span>
+<span class="sd">			x=R_locations,</span>
+<span class="sd">			y=signal[R_locations],</span>
+<span class="sd">			text=R_types,</span>
+<span class="sd">			mode=&quot;markers&quot;,</span>
+<span class="sd">			line=go.scatter.Line(color=&quot;red&quot;),</span>
+<span class="sd">			showlegend=False)</span>
+<span class="sd">	)</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="n">rangeslider_visible</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+	<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="calc_class_weights"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.calc_class_weights">[docs]</a><span class="k">def</span> <span class="nf">calc_class_weights</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+		<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="kn">import</span> <span class="n">class_weight</span>
+		<span class="n">class_weights</span> <span class="o">=</span> <span class="n">class_weight</span><span class="o">.</span><span class="n">compute_class_weight</span><span class="p">(</span><span class="s1">&#39;balanced&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+		<span class="n">class_weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">class_weights</span><span class="p">))</span>
+		<span class="c1">#dict(zip(FINAL_MAP_DICT, class_weights))</span>
+		<span class="k">return</span> <span class="n">class_weights</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">mean_squared_error</span>
+<span class="n">cosine_similarity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">CosineSimilarity</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">fastdtw</span> <span class="kn">import</span> <span class="n">fastdtw</span>
+
+<div class="viewcode-block" id="normalized_cross_corr"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.normalized_cross_corr">[docs]</a><span class="k">def</span> <span class="nf">normalized_cross_corr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">):</span> 
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+		<span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+		<span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+		<span class="n">cor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">correlate</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+		<span class="n">cor</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+			<span class="n">t</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">q</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+			<span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="n">q</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">q</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+			<span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">correlate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+			<span class="n">cor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+		<span class="n">cor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cor</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="sig_similarity_report"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.sig_similarity_report">[docs]</a><span class="k">def</span> <span class="nf">sig_similarity_report</span><span class="p">(</span><span class="n">x_true</span><span class="p">,</span><span class="n">x_pred</span><span class="p">,</span><span class="n">y_true</span><span class="p">):</span>
+	<span class="kn">from</span> <span class="nn">pyecg.data_handling</span> <span class="kn">import</span> <span class="n">DataHandling</span>
+	<span class="n">dh</span> <span class="o">=</span> <span class="n">DataHandling</span><span class="p">()</span>
+	<span class="n">mse</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">syms</span> <span class="o">=</span> <span class="p">[]</span> 
+	<span class="n">corr</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">coss</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">dtww</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y_true</span><span class="p">):</span>
+		<span class="n">ind</span> <span class="o">=</span> <span class="n">dh</span><span class="o">.</span><span class="n">search_label</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+		<span class="n">true</span> <span class="o">=</span> <span class="n">x_true</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+		<span class="n">pred</span> <span class="o">=</span> <span class="n">x_pred</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+		<span class="n">err</span> <span class="o">=</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span>
+		<span class="n">cor</span> <span class="o">=</span> <span class="n">normalized_cross_corr</span><span class="p">(</span><span class="n">true</span><span class="p">,</span><span class="n">pred</span><span class="p">)</span>
+		<span class="n">cos</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="c1">#mayb wrong</span>
+		<span class="n">dtw</span> <span class="o">=</span> <span class="n">fastdtw</span><span class="p">(</span><span class="n">true</span><span class="p">,</span><span class="n">pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">true</span><span class="p">)</span>
+		<span class="n">mse</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+		<span class="n">corr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cor</span><span class="p">)</span>
+		<span class="n">coss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+		<span class="n">dtww</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dtw</span><span class="p">)</span>
+		<span class="n">syms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+	<span class="n">dict_res_x</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sym&#39;</span><span class="p">:</span><span class="n">syms</span><span class="p">,</span> <span class="s1">&#39;mse_x&#39;</span><span class="p">:</span><span class="n">mse</span><span class="p">,</span> <span class="s1">&#39;cor&#39;</span><span class="p">:</span><span class="n">corr</span><span class="p">,</span> <span class="s1">&#39;cos&#39;</span><span class="p">:</span><span class="n">coss</span><span class="p">,</span> <span class="s1">&#39;dtw&#39;</span><span class="p">:</span><span class="n">dtww</span><span class="p">}</span>
+	<span class="n">df_x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">dict_res_x</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">df_x</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;cor&#39;</span><span class="p">))</span></div>
+
+
+
+
+
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">distance</span>
+
+<div class="viewcode-block" id="sig_similarity_hist"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.sig_similarity_hist">[docs]</a><span class="k">def</span> <span class="nf">sig_similarity_hist</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+	<span class="kn">from</span> <span class="nn">pyecg.data_handling</span> <span class="kn">import</span> <span class="n">DataHandling</span>
+	<span class="n">dh</span> <span class="o">=</span> <span class="n">DataHandling</span><span class="p">()</span>
+	<span class="n">MSE</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">COR</span> <span class="o">=</span> <span class="p">[]</span> 
+	<span class="n">COS</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">DTW</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">SYMS</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+		<span class="n">ind</span> <span class="o">=</span> <span class="n">dh</span><span class="o">.</span><span class="n">search_label</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+		<span class="n">x1_selected</span> <span class="o">=</span> <span class="n">x1</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+		<span class="n">x2_selected</span> <span class="o">=</span> <span class="n">x2</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x1_selected</span><span class="p">)):</span>
+			<span class="n">s1</span> <span class="o">=</span> <span class="n">x1_selected</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+			<span class="n">s2</span> <span class="o">=</span> <span class="n">x2_selected</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>        
+			<span class="n">mse</span> <span class="o">=</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">)</span>
+			<span class="n">cor</span> <span class="o">=</span> <span class="n">normalized_cross_corr</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">)</span>
+			<span class="n">cos</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cosine</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">))</span>
+			<span class="n">dtw</span> <span class="o">=</span> <span class="n">fastdtw</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+			<span class="n">MSE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mse</span><span class="p">)</span>
+			<span class="n">COR</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cor</span><span class="p">)</span>
+			<span class="n">COS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+			<span class="n">DTW</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dtw</span><span class="p">)</span>
+			<span class="n">SYMS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+	<span class="n">dict_res</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;SYM&#39;</span><span class="p">:</span><span class="n">SYMS</span><span class="p">,</span> <span class="s1">&#39;MSE&#39;</span><span class="p">:</span><span class="n">MSE</span><span class="p">,</span> <span class="s1">&#39;COR&#39;</span><span class="p">:</span><span class="n">COR</span><span class="p">,</span> <span class="s1">&#39;COS&#39;</span><span class="p">:</span><span class="n">COS</span><span class="p">,</span> <span class="s1">&#39;DTW&#39;</span><span class="p">:</span><span class="n">DTW</span><span class="p">}</span>
+	<span class="n">df_res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">dict_res</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">df_res</span></div>
+
+
+<div class="viewcode-block" id="get_var_size"><a class="viewcode-back" href="../../pyecg.html#pyecg.utils.get_var_size">[docs]</a><span class="k">def</span> <span class="nf">get_var_size</span><span class="p">(</span><span class="n">var_type</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hhh&#39;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">var_type</span><span class="o">==</span><span class="s1">&#39;all&#39;</span><span class="p">:</span>
+		<span class="n">varss</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">())</span>
+	<span class="k">elif</span> <span class="n">var_type</span><span class="o">==</span><span class="s1">&#39;local&#39;</span><span class="p">:</span>
+		<span class="n">varss</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+	<span class="k">elif</span> <span class="n">var_type</span><span class="o">==</span><span class="s1">&#39;global&#39;</span><span class="p">:</span>
+		<span class="n">varss</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">globals</span><span class="p">())</span>
+
+	<span class="kn">import</span> <span class="nn">sys</span>
+	<span class="n">ob</span><span class="o">=</span><span class="p">{}</span>
+	<span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">varss</span><span class="p">:</span>
+		<span class="n">ob</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">getsizeof</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">ob</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2023, Sadegh Mohammadi.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

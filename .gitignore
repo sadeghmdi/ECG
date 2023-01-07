@@ -1,0 +1,12 @@
+*.dat
+*.history
+*.txt
+checkpoint/
+__pycache__/
+cLitECG/
+data/
+ecgenv/
+guides/
+**/__pycache__/
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*

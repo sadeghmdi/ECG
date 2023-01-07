@@ -1,0 +1,247 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>pyecg.models.beat_anomaly_FCN &mdash; PyECG 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> PyECG
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">ecg</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyECG</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyecg.models.beat_anomaly_FCN</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyecg.models.beat_anomaly_FCN</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+
+<span class="c1">#FCN model arch (Anomaly)</span>
+<div class="viewcode-block" id="model_arch"><a class="viewcode-back" href="../../../pyecg.models.html#pyecg.models.beat_anomaly_FCN.model_arch">[docs]</a><span class="k">def</span> <span class="nf">model_arch</span><span class="p">(</span><span class="n">params_model</span><span class="p">):</span>
+	<span class="n">x_input_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params_model</span><span class="p">[</span><span class="s1">&#39;x_input_dim&#39;</span><span class="p">])</span>
+	<span class="c1">#r_input_dim = int(params_model[&#39;r_input_dim&#39;])</span>
+	<span class="n">input1_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">x_input_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;x_input&#39;</span><span class="p">)</span>
+	<span class="c1">#input2_layer = tf.keras.layers.Input(shape=(r_input_dim), name=&#39;r_input&#39;)</span>
+	
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">input1_layer</span>
+	<span class="c1">#out2 = input2_layer</span>
+	
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">()(</span><span class="n">out1</span><span class="p">)</span>
+	<span class="c1">#out2 = tf.keras.layers.BatchNormalization()(out2)  </span>
+
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)(</span><span class="n">out1</span><span class="p">)</span>
+
+
+	<span class="c1">#out = tf.keras.layers.Dense(32, activation= &#39;relu&#39;)(input1_layer)</span>
+	<span class="c1">#out = tf.keras.layers.Dropout(0.1)(out)</span>
+	<span class="c1">#out = tf.keras.layers.Dense(8, activation= &#39;relu&#39;)(out)</span>
+	<span class="c1">#out = tf.keras.layers.Dense(32, activation= &#39;relu&#39;)(out)</span>
+	<span class="c1">#out = tf.keras.layers.Dropout(0.1)(out)</span>
+
+	<span class="n">dim_latent</span> <span class="o">=</span> <span class="n">params_model</span><span class="p">[</span><span class="s1">&#39;dim_latent&#39;</span><span class="p">]</span>
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">dim_latent</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span> <span class="s1">&#39;sigmoid&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;latent&#39;</span><span class="p">)(</span><span class="n">out1</span><span class="p">)</span>
+	<span class="c1">#out2 = tf.keras.layers.Dense(2, activation= &#39;relu&#39;)(out2)</span>
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">()(</span><span class="n">out1</span><span class="p">)</span>
+	<span class="c1">#out2 = tf.keras.layers.BatchNormalization()(out2)</span>
+	
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)(</span><span class="n">out1</span><span class="p">)</span>
+	<span class="c1">#out2 = tf.keras.layers.Dropout(0.1)(out2)</span>
+
+	<span class="c1">#out_concat = tf.keras.layers.concatenate([out1, out2])</span>
+
+	<span class="c1">#out1 = tf.keras.layers.Dense(x_input_dim, activation= None)(out_concat)</span>
+	<span class="c1">#out2 = tf.keras.layers.Dense(r_input_dim, activation= None)(out_concat)</span>
+
+	<span class="n">out1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">x_input_dim</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span> <span class="kc">None</span><span class="p">)(</span><span class="n">out1</span><span class="p">)</span>
+	<span class="c1">#out2 = tf.keras.layers.Dense(r_input_dim, activation= None)(out2)</span>
+
+	<span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span> <span class="n">input1_layer</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">out1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Model_Anomaly_FCN&#39;</span><span class="p">)</span></div>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2023, Sadegh Mohammadi.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
