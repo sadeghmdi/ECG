@@ -33,7 +33,7 @@ class DataHandling:
 	order : int
 		Parameter of the low pass filter.
 
-	Exampels
+	Examples
 	--------
 	Creating the object:
 	>>> dh = DataHandling(base_path='../data', win=[500,500],remove_bl=False,lowpass=False)
@@ -49,8 +49,15 @@ class DataHandling:
 
 	"""
 
-	def __init__(self, base_path=os.getcwd(), data_path=DATA_PATH, win=[60,120],
-												remove_bl=True,lowpass=True,fs=360,cutoff=45,order=15):
+	def __init__(self, 
+		base_path=os.getcwd(), 
+		data_path=DATA_PATH, 
+		win=[60,120],
+		remove_bl=True,
+		lowpass=True,
+		fs=360,
+		cutoff=45,
+		order=15):
 
 		self.base_path = base_path
 		self.data_path = os.path.join(self.base_path, data_path)
@@ -76,8 +83,11 @@ class DataHandling:
 		Returns
 		-------
 		dict or dataframe
-			
-		
+			If return_dict is True, it returns a dictionary containing signal, location of rpeaks,
+			labels of each beat, rhythms, and locations of rhythms on the signal.
+
+			If return_dict is False, it returns a dataframe containing the time, raw signal, and 
+			a list of equal size to the raw signal with None values except at anntations locations.
 
 		"""
 		record = wfdb.rdrecord(self.data_path + str(record_num), channel_names=['MLII'])
@@ -117,6 +127,36 @@ class DataHandling:
 			return pd.DataFrame(sig_dict)  
 
 	def make_frags(self, signal, r_locations=None, r_label=None, num_pre_rr=50, num_post_rr=50):
+		"""
+		Fragments the signal into beats and returns the signal excerpts and their labels.
+
+		Parameters
+		----------
+		signal : list
+			A list containing signal values.
+		r_locations : list
+			A list containing rpeak locations on the signal.
+		r_label : list
+			A list containing the rpeak(beat) labels.
+		num_pre_rr : int
+			Determines how many of previous rpeak locations must be returned by the function.
+		num_post_rr : int
+			Determines how many of future rpeak locations must be returned by the function.
+
+		Returns
+		-------
+		signal_frags : np.array
+			A two dimensional array containing extracted beat excerpts.
+		beat_types : list
+			Contains the corersponding labels of each beat excerpt.
+		r_locs : list
+			A list containing lists of previous, itself, and future rpeak locations 
+			for each beat. Can be used for HRV calculations.
+		s_idxs : list
+			Contains the starting point of each extracted beat excerpt on the origional signal.
+			This is computed by subtracting the window onset from the rpeak location.
+
+		"""
 		win = self.win
 		frags = []
 		beat_types = []
@@ -135,9 +175,22 @@ class DataHandling:
 		return signal_frags, beat_types, r_locs, s_idxs 
 
 	def make_dataset(self, records=None):
-		""" Creates the full dataset 
-		xds : numpy array of the signal fragments. shape=(#fragments, length_of_fragment)
-		yds : list of corresponding types.  size=#fragments
+		"""
+		Creates the dataset from the provided records. Dataset contains signal excerpts,
+		features, and labels.
+
+		Parameters
+		----------
+		records : list
+			A list containing records numbers to be used.
+
+		Returns
+		-------
+		dict
+			key(waveforms): two dimensional array of signal excerpts. 
+			key(beat_feats): two dimensional array of beats features.
+			key(labels): one dimensional array of corersponding labels for beats.
+
 		"""
 		if records is None:
 			records = RECORDS
@@ -173,11 +226,29 @@ class DataHandling:
 		return {'waveforms':xds, 'beat_feats':beat_feats, 'labels':np.array(labels)} 
 
 	def beat_info_feat(self, data, beat_loc=10):
-		#takes as input a dictionary containing an arrays of signal fragments and
-		#their corrsponding r locations
+		"""
+		Provides the computed features and labels for all the beats.
+
+		Parameters
+		----------
+		data : dict
+			Contains waveforms array, rpeak locations, record id, waveform onset locations,
+			and labels.
+		beat_loc : 
+			Index of beat in the rpeaks locations list, considering number of previous and post 
+			rpeak locations in the list.
+
+		Returns
+		-------
+		features : list
+			A list containing feature dictionaries for all beats.
+		labels : list
+			Contains corresponding beat labels.
+
+		"""
+		
 		assert len(data['waveforms'])==len(data['start_idxs']), "len must be equal!"
 
-		
 		features=[]
 		labels= []
 		#beats loop

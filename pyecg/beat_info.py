@@ -21,7 +21,7 @@ class BeatInfo:
 	fs : int
 		Sampling rate
 	bloc : int 
-		Index of the beat in the rpeaks list, considering pre-RR and post-RR values.
+		Index of beat in the rpeaks list, considering pre-RR and post-RR values.
 	in_ms : bool 
 		Whether to calculate rr-intervals in time(miliseconds) or samples.
 
