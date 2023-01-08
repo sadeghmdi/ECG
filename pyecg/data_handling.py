@@ -145,7 +145,7 @@ class DataHandling:
 
 		Returns
 		-------
-		signal_frags : np.array
+		signal_frags : numpy.ndarray
 			A two dimensional array containing extracted beat excerpts.
 		beat_types : list
 			Contains the corersponding labels of each beat excerpt.
@@ -182,7 +182,7 @@ class DataHandling:
 		Parameters
 		----------
 		records : list
-			A list containing records numbers to be used.
+			A list containing records ids.
 
 		Returns
 		-------
@@ -363,7 +363,19 @@ class DataHandling:
 		return features,labels
 
 	def clean_irrelevant_data(self, ds):
-		""" Removes irrelevant symbols"""
+		"""Removes data with irrelevant labels(symbols) which are not in the symbols list.
+
+		Parameters
+		----------
+		ds : dict
+			Dataset as a dictionary containing waveforms,beat features, and labels.
+
+		Returns
+		-------
+		dict
+			Cleaned dataset.
+		"""
+
 		yds = ds['labels']
 		xds = ds['waveforms']
 		rds = ds['beat_feats']
@@ -376,7 +388,26 @@ class DataHandling:
 		return {'waveforms':xds,'beat_feats':rds,'labels':yds}
 
 	def search_label(self, inp, sym='N'):
-		"""return the corresponding indexes for a patricular label"""
+		"""Searches the provided data and returns the indexes for a patricular label.
+
+		Parameters
+		----------
+		inp : dict or numpy.ndarray
+			Input can be a dictionary having a 'labels' key, or a 1D numpy array.
+		sym : str, optional
+			The label to be searched for in the dataset, by default 'N'
+
+		Returns
+		-------
+		list
+			A list of indexes corresponding to the searched label.
+
+		Raises
+		------
+		TypeError
+			Input data must be a dictionary or a numpy array.
+		"""
+		
 		if isinstance(inp, dict):
 			yds = list(inp['labels'])
 		elif isinstance(inp, np.ndarray):
@@ -387,7 +418,20 @@ class DataHandling:
 		return indexes
 
 	def report_stats(self, yds_list):
-		"""Number of samples of each class in the array"""
+		"""Counts the number of samples for each label type in the data.
+
+		Parameters
+		----------
+		yds_list : list
+			List containing several label data. e.g train,val,test.
+
+		Returns
+		-------
+		list
+			A list of dictionaries. One dictionary per label data. keys are labels types(symbols) and
+			values are the counts of each specific symbol.
+			
+		"""
 		res_list = []
 		for yds in yds_list:
 			res = {}
@@ -398,7 +442,20 @@ class DataHandling:
 		return res_list
 
 	def report_stats_table(self, yds_list, name_list=[]):
-		"""Number of samples of each class in the array shown in tabular form"""
+		"""Returns the number of samples for each label type in the data as a dataframe.
+
+		Parameters
+		----------
+		yds_list : list
+			List containing several label data. e.g train,val,test.
+		name_list : list, optional
+			A list of strings as the name of label data e.g. train,val,test, by default []
+
+		Returns
+		-------
+		pandas.dataframe
+			A dataframe containing symbols and their counts.
+		"""
 		if len(name_list) == len(yds_list):
 			indx =  name_list
 		else:
@@ -407,7 +464,22 @@ class DataHandling:
 		df = pd.DataFrame(res_list, index=indx)
 		return df
 
-	def save_data(self, ds, save_file_name=None):
+	def save_data(self, ds, save_file_name):
+		"""Saves data in a file in the base data directory.
+
+		Parameters
+		----------
+		ds : any
+			_description_
+		save_file_name : str
+			Name of the file.
+
+		Raises
+		------
+		ValueError
+			File path is not provided.
+		"""
+
 		if save_file_name is None:
 			raise ValueError('Save file path is not provided!')
 		save_file_path = os.path.join(self.base_path, save_file_name)		
@@ -415,8 +487,24 @@ class DataHandling:
 			pickle.dump(ds, f)
 		print('file saved: ' + str(save_file_path))
 
-	def save_dataset(self, records=None, clean=True, save_file_name=None):
-		"""Saves the signal fragments and their labels into a file"""
+	def save_dataset(self, save_file_name, records, clean=True):
+		"""Makes dataset and saves it in a file.
+
+		Parameters
+		----------
+		save_file_name : str
+			Name of the file.
+		records : list
+			A list containing records ids.
+		clean : bool, optional
+			If True removes irrelavant label types, by default True
+
+		Raises
+		------
+		ValueError
+			File path is not provided.
+		"""
+
 		if save_file_name is None:
 			raise ValueError('Save file path is not provided!')
 		ds = self.make_dataset(records=records)
@@ -447,7 +535,6 @@ class DataHandling:
 		yarr_train = yarr[:split_idx]
 		yarr_test = yarr[split_idx:]
 		
-
 		ds_train = {'waveforms':xarr_train, 'beat_feats':farr_train, 'labels':yarr_train}
 		ds_test = {'waveforms':xarr_test, 'beat_feats':farr_test, 'labels':yarr_test}
 		if save_file_name==None:
