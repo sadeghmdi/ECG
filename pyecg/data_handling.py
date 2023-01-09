@@ -92,7 +92,7 @@ class DataHandling:
 		"""
 		record = wfdb.rdrecord(self.data_path + str(record_num), channel_names=['MLII'])
 		annotation = wfdb.rdann(self.data_path + str(record_num), 'atr')
-		signal = record.p_signal[:,0]
+		signal = record.p_signal[:,0]   # numpy.ndarray
 		ann_locations = annotation.sample
 		symbol = annotation.symbol
 		aux = annotation.aux_note
@@ -187,9 +187,10 @@ class DataHandling:
 		Returns
 		-------
 		dict
-			key(waveforms): two dimensional array of signal excerpts. 
-			key(beat_feats): two dimensional array of beats features.
-			key(labels): one dimensional array of corersponding labels for beats.
+			Keys:
+				'waveforms' : 2D ndarray of beat waveforms. 
+				'beat_feats' : 2D ndarray of beats' features.
+				'labels' : 1D ndarray of beats' labels.
 
 		"""
 		if records is None:
@@ -232,8 +233,12 @@ class DataHandling:
 		Parameters
 		----------
 		data : dict
-			Contains waveforms array, rpeak locations, record id, waveform onset locations,
-			and labels.
+			Keys:
+				'waveform' : list of waveforms
+				'rpeak' : list of rpeak locations
+				'rec_nums' : list of record ids
+				'start_idxs' : list of start_idxs of waveforms on the raw signal
+				'labels' : list of beat labels
 		beat_loc : 
 			Index of beat in the rpeaks locations list, considering number of previous and post 
 			rpeak locations in the list.
@@ -512,10 +517,20 @@ class DataHandling:
 			ds = self.clean_irrelevant_data(ds)
 		self.save_data(ds, save_file_name=save_file_name)
 	
-	def save_dataset_single(self, record=None, clean=True, split_ratio=0.3, save_file_name=None):
-		"""
-		Saves the signal fragments and their labels into a file for a single record
+	def save_dataset_single(self, record, clean=True, split_ratio=0.3, save_file_name=None):
+		"""Saves the signal fragments and their labels into a file for a single record 
 		split_ratio for training and test sets of a single signal.
+
+		Parameters
+		----------
+		record : int
+			Record id.
+		clean : bool, optional
+			If True doesnt include irrelevant label classes, by default True
+		split_ratio : float, optional
+			Ratio of test set, by default 0.3
+		save_file_name : str, optional
+			File name, by default None
 		"""
 		ds = self.make_dataset(records=[record])
 		if clean == True:
@@ -546,10 +561,19 @@ class DataHandling:
 		self.save_data(ds_train, save_file_name = file_train)
 		self.save_data(ds_test, save_file_name = file_test)
 
-	def save_dataset_intra(self, records=None, clean=True, split_ratio=0.3, save_file_name=None):
-		"""
-		Saves the signal fragments and their labels into a file for provided records
-		split_ratio for training and test sets of signals.
+	def save_dataset_intra(self, records, clean=True, split_ratio=0.3, save_file_prefix='intra'):
+		"""Makes and saves the dataset in intra way.
+
+		Parameters
+		----------
+		records : list, optional
+			A list of record ids.
+		clean : bool, optional
+			If True doesnt include irrelevant label classes, by default True
+		split_ratio : float, optional
+			Ratio of test set, by default 0.3
+		save_file_prefix : str, optional
+			File name prefix, by default 'intra'
 		"""
 		xdata_train = []
 		fdata_train = []
@@ -592,30 +616,58 @@ class DataHandling:
 
 		ds_train = {'waveforms':xdata_train, 'beat_feats':fdata_train, 'labels':ydata_train}
 		ds_test = {'waveforms':xdata_test, 'beat_feats':fdata_test, 'labels':ydata_test}
-		if save_file_name==None:
-			file_train = 'intra_train'+'.beat'
-			file_test = 'intra_test'+'.beat'
-		else:
-			file_train = save_file_name+'_train'+'.beat'
-			file_test = save_file_name+'_test'+'.beat'
+
+		file_train = save_file_prefix+'_train'+'.beat'
+		file_test = save_file_prefix+'_test'+'.beat'
 		self.save_data(ds_train, save_file_name = file_train)
 		self.save_data(ds_test, save_file_name = file_test)
 
-	def load_data(self, file_name=None):
+	def load_data(self, file_name):
+		"""Loads a file containing a dataframe
+
+		Parameters
+		----------
+		file_name : str
+			File name. The final path is the join of base path and file name.
+
+		Returns
+		-------
+		pandas.dataframe
+			Dataset as a dataframe.
+
+		Raises
+		------
+		ValueError
+			File path is not provided.
+		"""
+
 		if file_name is None:
 			raise ValueError('Load file path is not provided!')
 		load_file_path = os.path.join(self.base_path, file_name)	
 		with open(load_file_path, 'rb') as f:
 			ds = pickle.load(f)
-			print('file loaded: ' + load_file_path)
+			print('-File loaded: ' + load_file_path)
 			for k,v in ds.items():
-				print('shape of "{}" is {}'.format(k,v.shape))
+				print('-Shape of "{}" is {}. Number of samples is {}.'.format(k, v.shape, v.shape[0]))
 			print(self.report_stats_table([ds['labels']],[file_name]))
 		return ds
 
 	def per_record_stats(self, rec_num_list=DS1, cols=None):
-		#return a table containing the number of each type in each record
-		if cols==None:
+		"""Returns a dataframe containing the number of each type in each record
+
+		Parameters
+		----------
+		rec_num_list : list, optional
+			List of record ids, by default DS1
+		cols : list
+			List of labels classes, by default None
+
+		Returns
+		-------
+		pandas.dataframe
+			Pandas dataframe of count of each label type.
+		"""
+		if cols == None:
 			cols = self.syms
 		ld = []
 		for rec_num in rec_num_list:
@@ -629,9 +681,6 @@ class DataHandling:
 		df = df[list(set(cols) & set(df.columns))]
 		return df
 
-
-
-##---------------------------
 def stndr(arr,mean,std):
 		X = arr.copy()
 		X = (X - np.mean(X)) / np.std(X)
@@ -658,5 +707,5 @@ def binarize_lables(y,positive_lable,pos=1,neg=-1):
 	#y a list of lables
 	#positive_lable: positive class lable 
 	new_y = [pos if item==positive_lable else neg for item in y]
-	return new_y  
+	return new_y    
 
