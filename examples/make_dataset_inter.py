@@ -1,16 +1,17 @@
 """
 This example shows how to create the datasets inter-patient.
 """
+from pyecg.data_handling import DS1, DS2
+from pyecg.data_augmentation import *
+from pyecg.data_handling import DataHandling
+from pyecg.utils import *
 import sys
 sys.path.insert(0, '.')
-from pyecg.utils import *
-from pyecg.data_handling import DataHandling
-from pyecg.data_augmentation import *
-from pyecg.data_handling import DS1,DS2 
 
 # Inter-patient
-# Lets create a DataHandling object.the train set by creating 
-dh = DataHandling(base_path='./data', win=[500,500], remove_bl=False, lowpass=False)
+# Lets create a DataHandling object.the train set by creating
+dh = DataHandling(base_path='./data',
+                  win=[500, 500], remove_bl=False, lowpass=False)
 
 # use the save_dataset method to create the dataset file.
 # The file will be saved in the base data directory.
@@ -26,9 +27,8 @@ val_ds = dh.load_data(file_name='val.beat')
 test_ds = dh.load_data(file_name='test.beat')
 
 # Number of samples per class
-stat_report = dh.report_stats_table([train_ds['labels'], 
-                                    val_ds['labels'], 
-                                    test_ds['labels']], 
-                                    ['Train','Val','Test'])                                   
+stat_report = dh.report_stats_table([train_ds['labels'],
+                                    val_ds['labels'],
+                                    test_ds['labels']],
+                                    ['Train', 'Val', 'Test'])
 print(stat_report)
-

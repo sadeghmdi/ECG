@@ -11,33 +11,36 @@ from pyecg.data_handling import *
 
 
 def remove_baseline(signal, fs=360):
-	"""	Removes the signal baseline by applying two median filters.
-	
-	Parameters
-	----------
-	signal : numpy.ndarray
-		1D ndarray.
-	fs : int, optional
-		sampling frequency, by default 360
+    """	Removes the signal baseline by applying two median filters.
 
-	Returns
-	-------
-	numpy.ndarray
-		Baseline removed signal.
-	"""
+    Parameters
+    ----------
+    signal : numpy.ndarray
+        1D ndarray.
+    fs : int, optional
+        sampling frequency, by default 360
 
-	ker_size = int(0.2*fs)
-	if ker_size % 2 == 0: ker_size += 1
-	baseline = medfilt(signal, kernel_size=ker_size)
-	
-	ker_size = int(0.6*fs)
-	if ker_size % 2 == 0: ker_size += 1
-	baseline = medfilt(baseline, kernel_size=ker_size)
-	modified_signal = signal - baseline
-	
-	return modified_signal
+    Returns
+    -------
+    numpy.ndarray
+        Baseline removed signal.
+    """
 
-def lowpass_filter_butter(signal, cutoff=45, fs=360,order=15):
+    ker_size = int(0.2*fs)
+    if ker_size % 2 == 0:
+        ker_size += 1
+    baseline = medfilt(signal, kernel_size=ker_size)
+
+    ker_size = int(0.6*fs)
+    if ker_size % 2 == 0:
+        ker_size += 1
+    baseline = medfilt(baseline, kernel_size=ker_size)
+    modified_signal = signal - baseline
+
+    return modified_signal
+
+
+def lowpass_filter_butter(signal, cutoff=45, fs=360, order=15):
     """Applies low pass filter to the signal.
 
     Parameters
@@ -59,10 +62,11 @@ def lowpass_filter_butter(signal, cutoff=45, fs=360,order=15):
     nyq = 0.5*fs
     cf = cutoff/nyq
     sos = butter(order, cf, btype='low', output='sos', analog=False)
-    sig = sosfiltfilt(sos, signal) 
-    return sig, sos 
+    sig = sosfiltfilt(sos, signal)
+    return sig, sos
 
-def denoise_signal(signal,remove_bl=True,lowpass=False,fs=360,cutoff=45,order=15):
+
+def denoise_signal(signal, remove_bl=True, lowpass=False, fs=360, cutoff=45, order=15):
     """Denoises the signal by removing the baseline wander and/or applying low pass filter.
 
     Parameters
@@ -87,15 +91,16 @@ def denoise_signal(signal,remove_bl=True,lowpass=False,fs=360,cutoff=45,order=15
     """
 
     if remove_bl and not lowpass:
-        y = remove_baseline(signal,fs=fs)
+        y = remove_baseline(signal, fs=fs)
     if lowpass and not remove_bl:
-        y,_ = lowpass_filter_butter(signal, cutoff=cutoff, fs=fs,order=order)
+        y, _ = lowpass_filter_butter(signal, cutoff=cutoff, fs=fs, order=order)
     if remove_bl and lowpass:
         y = remove_baseline(signal)
-        y,_ = lowpass_filter_butter(y, cutoff=cutoff, fs=fs,order=order)
+        y, _ = lowpass_filter_butter(y, cutoff=cutoff, fs=fs, order=order)
     if not remove_bl and not lowpass:
         y = signal
     return y
+
 
 def clean_inf_nan(ds):
     """Cleans the dataset by removing inf and nan.
@@ -114,16 +119,17 @@ def clean_inf_nan(ds):
     yds = ds['labels']
     xds = ds['waveforms']
     rds = ds['beat_feats']
-    indexes=[]
+    indexes = []
     # cleans feature array
-    indexes.extend(np.where(np.isinf(rds))[0])  
-    indexes.extend(np.where(np.isnan(rds))[0])  
+    indexes.extend(np.where(np.isinf(rds))[0])
+    indexes.extend(np.where(np.isnan(rds))[0])
     rds = np.delete(rds, indexes, axis=0)
     xds = np.delete(xds, indexes, axis=0)
     yds = np.delete(yds, indexes, axis=0)
-    #ydsc = [it for ind,it in enumerate(yds) if ind not in indexes]
+    # ydsc = [it for ind,it in enumerate(yds) if ind not in indexes]
 
-    return {'waveforms':xds,'beat_feats':rds,'labels':yds}
+    return {'waveforms': xds, 'beat_feats': rds, 'labels': yds}
+
 
 def clean_IQR(ds, factor=1.5, return_indexes=False):
     """Cleans the dataset by removing outliers using IQR method.
@@ -145,25 +151,26 @@ def clean_IQR(ds, factor=1.5, return_indexes=False):
     yds = ds['labels']
     xds = ds['waveforms']
     rds = ds['beat_feats']
-	#cleans a 2d array. Each column is a features, rows are samples. Only r.
+    # cleans a 2d array. Each column is a features, rows are samples. Only r.
     ind_outliers = []
     for i in range(rds.shape[1]):
-        x = rds[:,i]
+        x = rds[:, i]
         Q1 = np.quantile(x, 0.25, axis=0)
         Q3 = np.quantile(x, 0.75, axis=0)
         IQR = Q3-Q1
-        inds = np.where((x> (Q3+factor*IQR)) | (x< (Q1-factor*IQR)))[0]
-        #print(len(inds))
+        inds = np.where((x > (Q3+factor*IQR)) | (x < (Q1-factor*IQR)))[0]
+        # print(len(inds))
         ind_outliers.extend(inds)
     rds = np.delete(rds, ind_outliers, axis=0)
     xds = np.delete(xds, ind_outliers, axis=0)
     yds = np.delete(yds, ind_outliers, axis=0)
-    if return_indexes==False:
-        return {'waveforms':xds, 'beat_feats':rds, 'labels':yds}
+    if return_indexes == False:
+        return {'waveforms': xds, 'beat_feats': rds, 'labels': yds}
     else:
         return ind_outliers
 
-def append_ds(ds1,ds2):
+
+def append_ds(ds1, ds2):
     """Appends two datasets together.
 
     Parameters
@@ -178,13 +185,15 @@ def append_ds(ds1,ds2):
     dict
         Final dataset.
     """
-    dss=dict()
-    dss['waveforms'] = np.vstack((ds1['waveforms'],ds2['waveforms']))
-    dss['beat_feats'] = np.vstack((ds1['beat_feats'],ds2['beat_feats']))
-    dss['labels'] = np.vstack((ds1['labels'].reshape(-1,1),ds2['labels'].reshape(-1,1))).flatten()
+    dss = dict()
+    dss['waveforms'] = np.vstack((ds1['waveforms'], ds2['waveforms']))
+    dss['beat_feats'] = np.vstack((ds1['beat_feats'], ds2['beat_feats']))
+    dss['labels'] = np.vstack(
+        (ds1['labels'].reshape(-1, 1), ds2['labels'].reshape(-1, 1))).flatten()
     return dss
 
-def clean_IQR_class(ds,factor=1.5):
+
+def clean_IQR_class(ds, factor=1.5):
     """Cleans dataset by IQR method for every class separately.
 
     Parameters
@@ -203,55 +212,75 @@ def clean_IQR_class(ds,factor=1.5):
         sliced = slice_data(ds, [label])
         cleaned = clean_IQR(sliced, factor=factor)
         try:
-            ds_all=append_ds(ds_all,cleaned)
+            ds_all = append_ds(ds_all, cleaned)
         except NameError:
-            ds_all=cleaned
+            ds_all = cleaned
     return ds_all
+
 
 class STFT:
     """
-	Short time fourier transform.
-    
-	Example
+    Short time fourier transform.
+
+    Example
     -------
-	>>> dpr = STFT()
-	>>> features = dpr.specgram(x, Fs=360, nperseg=127, noverlap=122)
+    >>> dpr = STFT()
+    >>> features = dpr.specgram(x, Fs=360, nperseg=127, noverlap=122)
     """
+
     def __init__(self):
         pass
+
     def specgram(self, signals, Fs=None, nperseg=None, noverlap=None):
         """Applies stft on the signals.
 
         Parameters
         ----------
         signals : numpy.ndarray
-            2D array of raw signals.
+            2D array of raw signals. Each row is one signal.
         Fs : int, optional
-            Param, by default None
+            Sampling frequency, by default None
         nperseg : int, optional
-            Param, by default None
+            Window size (parameter of STFT), by default None
         noverlap : int, optional
-            Param, by default None
+            Overlap (parameter of STFT), by default None
 
         Returns
         -------
         numpy.ndarray
             3D array of transformed signals.
         """
-        if Fs==None:
-            Fs=360
+        if Fs == None:
+            Fs = 360
         if nperseg == None:
-            nperseg=64
+            nperseg = 64
         if noverlap == None:
             noverlap = int(nperseg/2)
-        list_all=[]
+        list_all = []
         for i in tqdm(range(len(signals))):
-            f,t,Sxx= spectrogram(signals[i], fs=Fs, nperseg=nperseg, noverlap=noverlap, mode='psd')
-            list_all.append(Sxx.T[:,:].tolist())
+            f, t, Sxx = spectrogram(
+                signals[i], fs=Fs, nperseg=nperseg, noverlap=noverlap, mode='psd')
+            list_all.append(Sxx.T[:, :].tolist())
         out = np.array(list_all)
         return out
-	
-    def calc_feat_dim(self,samp,win,overlap):
+
+    def calc_feat_dim(self, samp, win, overlap):
+        """Calculates the 2D spectral feature size.
+
+        Parameters
+        ----------
+        samp : int
+            Number of samples.
+        win : int
+            Window size (parameter of STFT).
+        overlap : int
+            Overlap (parameter of STFT).
+
+        Returns
+        -------
+        int
+            Height and width.
+        """
         hdim = math.floor((samp-overlap)/(win-overlap))
         vdim = math.floor(win/2+1)
-        return hdim,vdim 
+        return hdim, vdim
