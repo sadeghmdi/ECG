@@ -1,9 +1,9 @@
 import sys
 sys.path.insert(0, '.')
-
-from pyecg.data_arrhythmia import *
-from pyecg.utils import load_data
+import numpy as np
 import matplotlib.pyplot as plt
+from pyecg.io import load_data
+from pyecg.data_arrhythmia import Arrhythmia, ECGSequence
 
 
 
@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 train_set = [201, 203]
 test_set = [202, 210, 219, 221, 222]
 
-# annotated_records, samples_info = save_samples_arr(rec_list=train_set,
-#                                                    file_path='./data/train.arr',
-#                                                    stride=64)
+arrhythmia = Arrhythmia(base_path='./data', remove_bl=False, lowpass=False)
+
+annotated_records, samples_info = arrhythmia.save_samples_arr(rec_list=train_set,
+                                                   file_path='./data/train.arr',
+                                                   stride=64)
 annotated_records, samples_info = load_data('./data/train.arr')
 
 labels = []
@@ -30,4 +32,4 @@ i = 0
 label = training_generator.__getitem__(i)[1]    # excerpt label
 seq = training_generator.__getitem__(i)[0][0]   # excerpt values
 rri = training_generator.__getitem__(i)[0][1]   # rr intervals
-feats = training_generator.__getitem__(i)[0][2] # calculated rri features
+feats = training_generator.__getitem__(i)[0][2]  # calculated rri features

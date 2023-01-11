@@ -1,12 +1,12 @@
 """
 This example shows how to create the datasets inter-patient.
 """
-from pyecg.data_handling import DS1, DS2
-from pyecg.data_augmentation import *
-from pyecg.data_handling import DataHandling
-from pyecg.utils import *
 import sys
 sys.path.insert(0, '.')
+from pyecg.data_info import DS1, DS2
+from pyecg.data_augmentation import *
+from pyecg.data_handling import DataHandling
+
 
 # Inter-patient
 # Lets create a DataHandling object.the train set by creating
@@ -15,11 +15,11 @@ dh = DataHandling(base_path='./data',
 
 # use the save_dataset method to create the dataset file.
 # The file will be saved in the base data directory.
-dh.save_dataset(records=DS1[:18], save_file_name='train.beat')
+dh.save_dataset(records=DS1[17:18], save_file_name='train.beat')
 
 # In a similar way for validation and test sets
-dh.save_dataset(records=DS1[18:], save_file_name='val.beat')
-dh.save_dataset(records=DS2, save_file_name='test.beat')
+dh.save_dataset(records=DS1[18:20], save_file_name='val.beat')
+dh.save_dataset(records=DS2[1:2], save_file_name='test.beat')
 
 # Loading the sets
 train_ds = dh.load_data(file_name='train.beat')

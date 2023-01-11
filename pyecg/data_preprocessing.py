@@ -7,7 +7,6 @@ import math
 from scipy.signal import spectrogram
 from scipy.signal import medfilt
 from scipy.signal import butter, sosfilt, sosfreqz, sosfiltfilt
-from pyecg.data_handling import *
 
 
 def remove_baseline(signal, fs=360):

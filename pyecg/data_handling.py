@@ -1,12 +1,11 @@
+import os
 import numpy as np
 import pandas as pd
-import wfdb
-import pickle
-import os
 import copy
 from tqdm import tqdm
-from pyecg.data_info import *
-from pyecg.data_preprocessing import *
+from pyecg.data_info import DATA_DIR, DS1, DS2, MAP_AAMI
+from pyecg.io import get_data, save_data, load_data
+from pyecg.data_preprocessing import denoise_signal
 from pyecg.beat_info import BeatInfo
 
 
@@ -51,10 +50,10 @@ class DataHandling:
 
     def __init__(self,
                  base_path=os.getcwd(),
-                 data_path=DATA_PATH,
+                 data_path=DATA_DIR,
                  win=[60, 120],
-                 remove_bl=True,
-                 lowpass=True,
+                 remove_bl=False,
+                 lowpass=False,
                  fs=360,
                  cutoff=45,
                  order=15):
@@ -69,14 +68,14 @@ class DataHandling:
         self.cutoff = cutoff
         self.order = order
 
-    def get_signal_data(self, record_num=106, return_dict=True):
+    def get_ecg_record(self, record_id=106):
         """
         Loads a record and return its components.
 
         Parameters
         ----------
-        record_num : int
-                The record number.
+        record_id : str
+                Record id.
         return_dict : bool
                 If True returns as a dict otherwise returns as a pandas dataframe.
 
@@ -89,43 +88,14 @@ class DataHandling:
                 a list of equal size to the raw signal with None values except at anntations locations.
 
         """
-        record = wfdb.rdrecord(
-            self.data_path + str(record_num), channel_names=['MLII'])
-        annotation = wfdb.rdann(self.data_path + str(record_num), 'atr')
-        signal = record.p_signal[:, 0]   # numpy.ndarray
-        ann_locations = annotation.sample
-        symbol = annotation.symbol
-        aux = annotation.aux_note
-        aux = [txt.rstrip('\x00') for txt in aux]
-        signal = denoise_signal(signal, remove_bl=self.remove_bl,
-                                lowpass=self.lowpass, fs=self.fs,
-                                cutoff=self.cutoff, order=self.order)
-        r_labels = []
-        r_locations = []
-        rhythms = []
-        rhythms_locations = []
-        for i in range(len(ann_locations)):
-            if symbol[i] in self.syms:
-                r_labels.append(symbol[i])
-                r_locations.append(ann_locations[i])
-
-            if aux[i] in RHYTHM_TYPES:
-                rhythms.append(aux[i])
-                rhythms_locations.append(ann_locations[i])
-
-        if return_dict == True:
-            return {'signal': signal,
-                    'r_locations': r_locations, 'r_labels': r_labels,
-                    'rhythms': rhythms, 'rhythms_locations': rhythms_locations}
-        else:
-            annots = [None]*len(signal)
-            for i in range(len(ann_locations)):
-                annots[ann_locations[i]] = symbol[i]
-                if aux[i] != '':
-                    annots[ann_locations[i]] = aux[i]
-            sig_dict = {'time': range(len(signal)),
-                        'signal': signal, 'annots': annots}
-            return pd.DataFrame(sig_dict)
+        if not isinstance(record_id, str):
+            record_id = str(record_id)
+        record_path = self.data_path + record_id
+        data_dict = get_data(record_path, return_dict=True)
+        data_dict['signal'] = denoise_signal(data_dict['signal'], remove_bl=self.remove_bl,
+                                             lowpass=self.lowpass, fs=self.fs,
+                                             cutoff=self.cutoff, order=self.order)
+        return data_dict
 
     def make_frags(self, signal, r_locations=None, r_label=None, num_pre_rr=50, num_post_rr=50):
         """
@@ -202,7 +172,7 @@ class DataHandling:
         start_idxs = []
         rec_num_list = []  # debug
         for i in tqdm(range(len(records))):
-            rec_dict = self.get_signal_data(record_num=records[i])
+            rec_dict = self.get_ecg_record(record_id=records[i])
             signal, r_locations, r_labels, _, _ = rec_dict.values()
             signal_frags, beat_types, r_locs, s_idxs = self.make_frags(
                 signal, r_locations, r_labels)
@@ -472,30 +442,7 @@ class DataHandling:
             indx = None
         res_list = self.report_stats(yds_list)
         df = pd.DataFrame(res_list, index=indx)
-        return df
-
-    def save_data(self, ds, save_file_name):
-        """Saves data in a file in the base data directory.
-
-        Parameters
-        ----------
-        ds : any
-                _description_
-        save_file_name : str
-                Name of the file.
-
-        Raises
-        ------
-        ValueError
-                File path is not provided.
-        """
-
-        if save_file_name is None:
-            raise ValueError('Save file path is not provided!')
-        save_file_path = os.path.join(self.base_path, save_file_name)
-        with open(save_file_path, 'wb') as f:
-            pickle.dump(ds, f)
-        print('file saved: ' + str(save_file_path))
+        return df 
 
     def save_dataset(self, save_file_name, records, clean=True):
         """Makes dataset and saves it in a file.
@@ -520,7 +467,7 @@ class DataHandling:
         ds = self.make_dataset(records=records)
         if clean == True:
             ds = self.clean_irrelevant_data(ds)
-        self.save_data(ds, save_file_name=save_file_name)
+        save_data(ds, file_path=os.path.join(self.base_path, save_file_name))
 
     def save_dataset_single(self, record, clean=True, split_ratio=0.3, save_file_name=None):
         """Saves the signal fragments and their labels into a file for a single record 
@@ -565,8 +512,8 @@ class DataHandling:
         else:
             file_train = save_file_name+'_train'+'.beat'
             file_test = save_file_name+'_test'+'.beat'
-        self.save_data(ds_train, save_file_name=file_train)
-        self.save_data(ds_test, save_file_name=file_test)
+        save_data(ds_train, file_path=os.path.join(self.base_path, file_train))
+        save_data(ds_test, file_path=os.path.join(self.base_path, file_test))
 
     def save_dataset_intra(self, records, clean=True, split_ratio=0.3, save_file_prefix='intra'):
         """Makes and saves the dataset in intra way.
@@ -627,9 +574,10 @@ class DataHandling:
                    'beat_feats': fdata_test, 'labels': ydata_test}
 
         file_train = save_file_prefix+'_train'+'.beat'
+        save_data(ds_train, file_path=os.path.join(self.base_path, file_train))
+
         file_test = save_file_prefix+'_test'+'.beat'
-        self.save_data(ds_train, save_file_name=file_train)
-        self.save_data(ds_test, save_file_name=file_test)
+        save_data(ds_test, file_path=os.path.join(self.base_path, file_test))
 
     def load_data(self, file_name):
         """Loads a file containing a dataframe
@@ -647,19 +595,15 @@ class DataHandling:
         Raises
         ------
         ValueError
-                File path is not provided.
+                File name is not provided.
         """
 
         if file_name is None:
-            raise ValueError('Load file path is not provided!')
-        load_file_path = os.path.join(self.base_path, file_name)
-        with open(load_file_path, 'rb') as f:
-            ds = pickle.load(f)
-            print('-File loaded: ' + load_file_path)
-            for k, v in ds.items():
-                print(
-                    '-Shape of "{}" is {}. Number of samples is {}.'.format(k, v.shape, v.shape[0]))
-            print(self.report_stats_table([ds['labels']], [file_name]))
+            raise ValueError('Load file name is not provided!')
+        ds = load_data(file_path = os.path.join(self.base_path, file_name))
+        for k, v in ds.items():
+                print('-Shape of "{}" is {}. Number of samples is {}.'.format(k, v.shape, v.shape[0]))
+        print(self.report_stats_table([ds['labels']], [file_name]))
         return ds
 
     def per_record_stats(self, rec_num_list=DS1, cols=None):
@@ -681,7 +625,7 @@ class DataHandling:
             cols = self.syms
         ld = []
         for rec_num in rec_num_list:
-            rec_dict = self.get_signal_data(record_num=records[i])
+            rec_dict = self.get_ecg_record(record_id=records[i])
             res = np.unique(rec_dict['r_labels'], return_counts=True)
             ld.append(dict(zip(res[0], res[1])))
 

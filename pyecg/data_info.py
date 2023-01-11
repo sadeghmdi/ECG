@@ -1,6 +1,6 @@
 
 
-DATA_PATH = "mit-bih-arrhythmia-database-1.0.0/"
+DATA_DIR = "mit-bih-arrhythmia-database-1.0.0/"
 
 RECORDS = (100,101,103,105,106,107,108,109,111,112,
 			113,114,115,116,117,118,119,121,122,123,
